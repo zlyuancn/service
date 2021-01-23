@@ -13,10 +13,8 @@ import (
 
 	"github.com/iris-contrib/middleware/cors"
 	"github.com/kataras/iris/v12"
-	"go.uber.org/zap"
-
 	"github.com/zly-app/zapp/core"
-	"github.com/zly-app/zapp/service"
+	"go.uber.org/zap"
 
 	"github.com/zly-app/service/api/config"
 	"github.com/zly-app/service/api/middleware"
@@ -66,33 +64,21 @@ func (a *ApiService) Start() error {
 	}
 	config.Conf = conf
 
-	err = service.WaitRun(a.app, &service.WaitRunOption{
-		ServiceType:        nowServiceType,
-		IgnoreErrs:         []error{iris.ErrServerClosed},
-		ExitOnErrOfObserve: true,
-		RunServiceFn: func() error {
-			opts := []iris.Configurator{
-				iris.WithoutBodyConsumptionOnUnmarshal, // 重复消费
-				iris.WithoutPathCorrection,             // 不自动补全斜杠
-				iris.WithOptimizations,                 // 启用性能优化
-				iris.WithoutStartupLog,                 // 不要打印iris启动信息
-				iris.WithPathEscape,                    // 解析path转义
-			}
-			if conf.IPWithNginxForwarded {
-				opts = append(opts, iris.WithRemoteAddrHeader("X-Forwarded-For"))
-			}
-			if conf.IPWithNginxReal {
-				opts = append(opts, iris.WithRemoteAddrHeader("X-Real-IP"))
-			}
-			return a.Run(iris.Addr(conf.Bind), opts...)
-		},
-	})
-	if err != nil {
-		return err
+	a.app.Debug("正在启动api服务", zap.String("bind", conf.Bind))
+	opts := []iris.Configurator{
+		iris.WithoutBodyConsumptionOnUnmarshal, // 重复消费
+		iris.WithoutPathCorrection,             // 不自动补全斜杠
+		iris.WithOptimizations,                 // 启用性能优化
+		iris.WithoutStartupLog,                 // 不要打印iris启动信息
+		iris.WithPathEscape,                    // 解析path转义
 	}
-
-	a.app.Debug("app服务启动成功", zap.String("bind", conf.Bind))
-	return nil
+	if conf.IPWithNginxForwarded {
+		opts = append(opts, iris.WithRemoteAddrHeader("X-Forwarded-For"))
+	}
+	if conf.IPWithNginxReal {
+		opts = append(opts, iris.WithRemoteAddrHeader("X-Real-IP"))
+	}
+	return a.Run(iris.Addr(conf.Bind), opts...)
 }
 
 func (a *ApiService) Close() error {

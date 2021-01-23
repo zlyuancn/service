@@ -11,7 +11,7 @@ require (
 	github.com/k0kubun/colorstring v0.0.0-20150214042306-9440f1994b88 // indirect
 	github.com/kataras/iris/v12 v12.2.0-alpha2
 	github.com/yudai/pp v2.0.1+incompatible // indirect
-	github.com/zly-app/zapp v1.0.1
+	github.com/zly-app/zapp v1.0.2
 	github.com/zlyuancn/zutils v0.0.0-20210122082914-844d7aa8324a
 	go.uber.org/zap v1.16.0
 )
