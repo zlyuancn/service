@@ -3,21 +3,12 @@
 
 > 提供用于 https://github.com/zly-app/zapp 的服务插件
 
-# 示例
+# 说明
 
-```go
-// 注册api服务
-api.RegistryService()
-// 启用api服务
-app := zapp.NewApp("test", api.WithApiService())
-// 注册路由
-api.RegistryApiRouter(app, func(c core.IComponent, router api.Party) {
-    router.Get("/", api.Wrap(func(ctx *api.Context) interface{} {
-        return "hello"
-    }))
-})
-// 运行
-app.Run()
+```text
+api.RegistryService()           # 注册服务
+api.WithApiService()            # 启用服务
+api.RegistryApiRouter(...)      # 服务注入(注册路由)
 ```
 
 # 配置
