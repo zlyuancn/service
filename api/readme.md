@@ -11,6 +11,34 @@ api.WithApiService()            # 启用服务
 api.RegistryApiRouter(...)      # 服务注入(注册路由)
 ```
 
+# 示例
+
+```go
+package main
+
+import (
+	"github.com/zly-app/service/api"
+
+	"github.com/zly-app/zapp"
+	"github.com/zly-app/zapp/core"
+)
+
+func main() {
+	// 注册api服务
+	api.RegistryService()
+	// 启用api服务
+	app := zapp.NewApp("test", api.WithApiService())
+	// 注册路由
+	api.RegistryApiRouter(app, func(c core.IComponent, router api.Party) {
+		router.Get("/", api.Wrap(func(ctx *api.Context) interface{} {
+			return "hello"
+		}))
+	})
+	// 运行
+	app.Run()
+}
+```
+
 # 配置
 
 > 默认服务类型为 `api`
