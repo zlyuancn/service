@@ -14,14 +14,23 @@ mysql_binlog.RegistryMysqlBinlogHandler(...)    # 服务注入(注册记录事�
 # 示例
 
 ```go
-// 注册服务
-mysql_binlog.RegistryService()
-// 启用服务
-app := zapp.NewApp("test", mysql_binlog.WithMysqlBinlogService())
-// 服务注入
-mysql_binlog.RegistryMysqlBinlogHandler(app, &mysql_binlog.BaseEventHandler{})
-// 运行
-app.Run()
+package main
+
+import (
+	mysql_binlog "github.com/zly-app/service/mysql-binlog"
+	"github.com/zly-app/zapp"
+)
+
+func main() {
+    // 注册服务
+    mysql_binlog.RegistryService()
+    // 启用服务
+    app := zapp.NewApp("test", mysql_binlog.WithMysqlBinlogService())
+    // 服务注入
+    mysql_binlog.RegistryMysqlBinlogHandler(app, &mysql_binlog.BaseEventHandler{})
+    // 运行
+    app.Run()
+}
 ```
 
 # 配置
