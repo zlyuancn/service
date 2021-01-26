@@ -17,6 +17,8 @@ const (
 	defaultHeartbeatInterval = 30000
 	// 默认超时
 	defaultTimeout = 30000
+	// MaxInFlight
+	defaultMaxInFlight = 1024
 	// 默认线程数
 	defaultThreadCount = 0
 )
@@ -29,6 +31,7 @@ type Config struct {
 	ReadTimeout       int64  // 超时(毫秒)
 	WriteTimeout      int64  // 超时(毫秒)
 	DialTimeout       int64  // 超时(毫秒)
+	MaxInFlight       int    // Maximum number of messages to allow in flight (concurrency knob)
 	// 线程数, 默认为0表示使用逻辑cpu数量
 	//
 	// 同时处理信息的goroutine数
@@ -44,6 +47,7 @@ func newConfig() *Config {
 		ReadTimeout:       defaultTimeout,
 		WriteTimeout:      defaultTimeout,
 		DialTimeout:       defaultTimeout,
+		MaxInFlight:       defaultMaxInFlight,
 		ThreadCount:       defaultThreadCount,
 	}
 }
@@ -51,6 +55,9 @@ func newConfig() *Config {
 func (conf *Config) Check() {
 	if conf.HeartbeatInterval <= 0 {
 		conf.HeartbeatInterval = -1
+	}
+	if conf.MaxInFlight <= 0 {
+		conf.MaxInFlight = defaultMaxInFlight
 	}
 	if conf.ThreadCount <= 0 {
 		conf.ThreadCount = runtime.NumCPU()

@@ -60,6 +60,7 @@ func (n *NsqConsumeService) Start() error {
 		nsqConf.ReadTimeout = time.Duration(conf.ReadTimeout) * time.Millisecond
 		nsqConf.WriteTimeout = time.Duration(conf.WriteTimeout) * time.Millisecond
 		nsqConf.DialTimeout = time.Duration(conf.DialTimeout) * time.Millisecond
+		nsqConf.MaxInFlight = conf.MaxInFlight
 
 		consumer, err := nsq.NewConsumer(h.Topic, h.Channel, nsqConf)
 		if err != nil {
