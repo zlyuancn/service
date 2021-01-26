@@ -33,7 +33,7 @@ func GetLoggerFromContext(ctx context.Context) (core.ILogger, bool) {
 func MustGetLoggerFromContext(ctx context.Context) core.ILogger {
 	log, ok := GetLoggerFromContext(ctx)
 	if !ok {
-		logger.Log.Panic("can't load app_context from context")
+		logger.Log.Panic("can't load logger from context")
 	}
 	return log
 }
