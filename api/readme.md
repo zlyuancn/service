@@ -5,6 +5,8 @@
 
 # 说明
 
+> 此组件基于模块 [github.com/kataras/iris/v12](https://github.com/kataras/iris)
+
 ```text
 api.RegistryService()           # 注册服务
 api.WithApiService()            # 启用服务
