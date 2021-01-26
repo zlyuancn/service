@@ -66,7 +66,7 @@ func (n *NsqConsumeService) Start() error {
 			return fmt.Errorf("创建nsq消费者失败, topic:%s, channel:%s, err:%s", h.Topic, h.Channel, err)
 		}
 		h.SetConsumer(consumer)
-		consumer.AddHandler(h)
+		consumer.AddConcurrentHandlers(h, conf.ThreadCount)
 	}
 
 	// 连接

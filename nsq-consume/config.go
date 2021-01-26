@@ -8,8 +8,18 @@
 
 package nsq_consume
 
-const DefaultHeartbeatInterval = 30000 // 默认心跳间隔
-const DefaultTimeout = 30000           // 默认超时
+import (
+	"runtime"
+)
+
+const (
+	// 默认心跳间隔
+	defaultHeartbeatInterval = 30000
+	// 默认超时
+	defaultTimeout = 30000
+	// 默认线程数
+	defaultThreadCount = 0
+)
 
 type Config struct {
 	NsqdAddress       string // nsqd地址, localhost1:4150,localhost2:4150
@@ -19,6 +29,10 @@ type Config struct {
 	ReadTimeout       int64  // 超时(毫秒)
 	WriteTimeout      int64  // 超时(毫秒)
 	DialTimeout       int64  // 超时(毫秒)
+	// 线程数, 默认为0表示使用逻辑cpu数量
+	//
+	// 同时处理信息的goroutine数
+	ThreadCount int
 }
 
 func newConfig() *Config {
@@ -26,15 +40,19 @@ func newConfig() *Config {
 		NsqdAddress:       "",
 		NsqLookupdAddress: "",
 		AuthSecret:        "",
-		HeartbeatInterval: DefaultHeartbeatInterval,
-		ReadTimeout:       DefaultTimeout,
-		WriteTimeout:      DefaultTimeout,
-		DialTimeout:       DefaultTimeout,
+		HeartbeatInterval: defaultHeartbeatInterval,
+		ReadTimeout:       defaultTimeout,
+		WriteTimeout:      defaultTimeout,
+		DialTimeout:       defaultTimeout,
+		ThreadCount:       defaultThreadCount,
 	}
 }
 
 func (conf *Config) Check() {
 	if conf.HeartbeatInterval <= 0 {
 		conf.HeartbeatInterval = -1
+	}
+	if conf.ThreadCount <= 0 {
+		conf.ThreadCount = runtime.NumCPU()
 	}
 }

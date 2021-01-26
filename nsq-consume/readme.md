@@ -56,4 +56,6 @@ ReadTimeout=30000
 WriteTimeout=30000
 # 超时(毫秒)
 DialTimeout=30000
+# 线程数, 默认为0表示使用逻辑cpu数量
+ThreadCount=0
 ```
