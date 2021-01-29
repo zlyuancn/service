@@ -14,6 +14,7 @@ import (
 
 	"github.com/siddontang/go-mysql/canal"
 	"github.com/siddontang/go-mysql/schema"
+	"github.com/twpayne/go-geom/encoding/geojson"
 	"github.com/twpayne/go-geom/encoding/wkb"
 	"go.uber.org/zap"
 
@@ -151,7 +152,7 @@ func (a *analyzer) parseLine(table *schema.Table, row []interface{}) (out map[st
 //      SET: int64
 //      BIT: int64
 //      POINT: []float64{x, y}
-//      GEOMETRY: []float64{...}
+//      GEOMETRY: []byte geojson
 func (a *analyzer) parseValue(t int, rawType string, v interface{}) (interface{}, error) {
 	if v == nil {
 		return nil, nil
@@ -186,17 +187,22 @@ func (a *analyzer) parseValue(t int, rawType string, v interface{}) (interface{}
 	return v, nil
 }
 
-func (a *analyzer) parseWKB(data []byte) ([]float64, error) {
+func (a *analyzer) parseWKB(data []byte) ([]byte, error) {
 	if len(data) <= 4 {
 		return nil, errors.New("wkb data is incomplete")
 	}
 
-	p, err := wkb.Unmarshal(data[4:])
+	temp, err := wkb.Unmarshal(data[4:])
 	if err != nil {
 		return nil, fmt.Errorf("wkb data parser err: %s", err)
 	}
 
-	return p.FlatCoords(), nil
+	out, err := geojson.Marshal(temp)
+	if err != nil {
+		return nil, fmt.Errorf("wkb data cannot be converted to geojson: %s", err)
+	}
+
+	return out, nil
 }
 
 func (a *analyzer) parseWKBOfPoint(data []byte) ([]float64, error) {
