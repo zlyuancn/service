@@ -1,7 +1,7 @@
 
-# cron服务插件
+# cron服务
 
-> 提供用于 https://github.com/zly-app/zapp 的服务插件
+> 提供用于 https://github.com/zly-app/zapp 的服务
 
 # 说明
 

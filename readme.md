@@ -1,7 +1,7 @@
 
-# 服务插件
+# 服务
 
-> 提供用于 https://github.com/zly-app/zapp 的服务插件
+> 提供用于 https://github.com/zly-app/zapp 的服务
 
 # 说明
 
@@ -12,7 +12,7 @@
 3. 注入服务, 这一步根据不同的服务有不同的方法, 一般为 serviceType.RegistryXXX(...)
 4. 启动app
 
-# 以api服务插件示例
+# 以api服务示例
 
 ```go
 // 注册api服务
