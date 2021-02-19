@@ -12,9 +12,8 @@ import (
 	"github.com/siddontang/go-mysql/canal"
 	"github.com/siddontang/go-mysql/mysql"
 	"github.com/siddontang/go-mysql/replication"
+	"github.com/zly-app/zapp/logger"
 	"go.uber.org/zap"
-
-	"github.com/zly-app/zapp/component"
 )
 
 const (
@@ -92,18 +91,18 @@ func (b *BaseEventHandler) GetStartPos() (binlogName string, pos uint32, err err
 	return LatestPos, 0, nil
 }
 func (b *BaseEventHandler) OnEventParseErr(event *canal.RowsEvent, err error) (skip bool) {
-	component.GlobalComponent().Warn("OnEventParseErr", zap.Any("event", event), zap.Error(err))
+	logger.Log.Warn("OnEventParseErr", zap.Any("event", event), zap.Error(err))
 	return true
 }
 func (b *BaseEventHandler) OnTableChanged(schema, table, sql string) {
-	component.GlobalComponent().Debug("OnTableChanged", zap.String("schema", schema), zap.String("table", table), zap.String("sql", sql))
+	logger.Log.Debug("OnTableChanged", zap.String("schema", schema), zap.String("table", table), zap.String("sql", sql))
 }
 func (b *BaseEventHandler) OnRow(records []*Record) {
 	for i, r := range records {
-		component.GlobalComponent().Debug("OnRow", i, r.String())
+		logger.Log.Debug("OnRow", i, r.String())
 	}
 }
 func (b *BaseEventHandler) OnPosSynced(binlogName string, pos uint32, force bool) error {
-	component.GlobalComponent().Debug("OnPosSynced", zap.String("binlogName", binlogName), zap.Uint32("pos", pos), zap.Bool("force", force))
+	logger.Log.Debug("OnPosSynced", zap.String("binlogName", binlogName), zap.Uint32("pos", pos), zap.Bool("force", force))
 	return nil
 }
