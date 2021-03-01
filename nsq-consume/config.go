@@ -32,12 +32,12 @@ type Config struct {
 	NsqdAddress       string // nsqd地址, localhost1:4150,localhost2:4150
 	NsqLookupdAddress string // nsq发现服务地址, 优先级高于NsqdAddress, localhost1:4161,localhost2:4161
 	AuthSecret        string // 验证秘钥
-	HeartbeatInterval int64  // 心跳间隔(毫秒), 不能超过ReadTimeout, 0表示无
+	HeartbeatInterval int64  // 心跳间隔(毫秒), 不能超过ReadTimeout
 	ReadTimeout       int64  // 超时(毫秒)
 	WriteTimeout      int64  // 超时(毫秒)
 	DialTimeout       int64  // 超时(毫秒)
 	MaxInFlight       int    // Maximum number of messages to allow in flight (concurrency knob)
-	// 线程数, 默认为0表示使用逻辑cpu数量
+	// 默认线程数, 默认为0表示使用逻辑cpu数量
 	//
 	// 同时处理信息的goroutine数
 	ThreadCount int
@@ -58,9 +58,6 @@ func newConfig() *Config {
 }
 
 func (conf *Config) Check() error {
-	if conf.HeartbeatInterval <= 0 {
-		conf.HeartbeatInterval = -1
-	}
 	if conf.ReadTimeout <= 0 {
 		conf.ReadTimeout = defaultReadTimeout
 	}
@@ -69,6 +66,12 @@ func (conf *Config) Check() error {
 	}
 	if conf.DialTimeout <= 0 {
 		conf.DialTimeout = defaultDialTimeout
+	}
+	if conf.HeartbeatInterval <= 0 {
+		conf.HeartbeatInterval = defaultHeartbeatInterval
+	}
+	if conf.HeartbeatInterval > conf.ReadTimeout {
+		conf.HeartbeatInterval = conf.ReadTimeout
 	}
 	if conf.MaxInFlight <= 0 {
 		conf.MaxInFlight = defaultMaxInFlight

@@ -16,6 +16,7 @@ import (
 
 	"github.com/nsqio/go-nsq"
 	"github.com/zly-app/zapp/core"
+	"github.com/zly-app/zapp/pkg/utils"
 )
 
 type NsqConsumeService struct {
@@ -66,8 +67,8 @@ func (n *NsqConsumeService) Start() error {
 		if err != nil {
 			return fmt.Errorf("创建nsq消费者失败, topic:%s, channel:%s, err:%s", h.Topic, h.Channel, err)
 		}
-		h.SetConsumer(consumer)
-		consumer.AddConcurrentHandlers(h, conf.ThreadCount)
+		h.SetConsumer(n.app, consumer)
+		consumer.AddConcurrentHandlers(h, utils.Ternary.Or(h.ThreadCount, conf.ThreadCount).(int))
 	}
 
 	// 连接

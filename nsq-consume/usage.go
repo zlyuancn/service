@@ -38,6 +38,6 @@ func WithNsqConsumeService() zapp.Option {
 }
 
 // 注册handler
-func RegistryNsqConsumeHandler(app core.IApp, topic, channel string, handler RegistryNsqConsumerHandlerFunc) {
-	app.InjectService(nowServiceType, newHandlerConfig(app, topic, channel, handler))
+func RegistryNsqConsumeHandler(app core.IApp, topic, channel string, handler RegistryNsqConsumerHandlerFunc, opts ...HandlerOption) {
+	app.InjectService(nowServiceType, newHandlerConfig(topic, channel, handler, opts...))
 }

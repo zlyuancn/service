@@ -29,19 +29,25 @@ type handlerConfig struct {
 	Topic    string
 	Channel  string
 	Handler  RegistryNsqConsumerHandlerFunc
+	*handlerOptions
 }
 
-func newHandlerConfig(app core.IApp, topic, channel string, handler RegistryNsqConsumerHandlerFunc) *handlerConfig {
-	return &handlerConfig{
-		app:      app,
-		consumer: nil,
-		Topic:    topic,
-		Channel:  channel,
-		Handler:  handler,
+func newHandlerConfig(topic, channel string, handler RegistryNsqConsumerHandlerFunc, opts ...HandlerOption) *handlerConfig {
+	hc := &handlerConfig{
+		consumer:       nil,
+		Topic:          topic,
+		Channel:        channel,
+		Handler:        handler,
+		handlerOptions: newHandlerOptions(),
 	}
+	for _, o := range opts {
+		o(hc.handlerOptions)
+	}
+	return hc
 }
 
-func (h *handlerConfig) SetConsumer(consumer *nsq.Consumer) {
+func (h *handlerConfig) SetConsumer(app core.IApp, consumer *nsq.Consumer) {
+	h.app = app
 	h.consumer = consumer
 }
 

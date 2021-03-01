@@ -48,7 +48,7 @@ NsqdAddress="localhost:4150"
 NsqLookupdAddress=""
 # 验证秘钥
 AuthSecret=""
-# 心跳间隔(毫秒), 不能超过ReadTimeout, 0表示无
+# 心跳间隔(毫秒), 不能超过ReadTimeout
 HeartbeatInterval=30000
 # 超时(毫秒)
 ReadTimeout=30000
