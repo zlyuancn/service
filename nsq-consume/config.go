@@ -15,8 +15,12 @@ import (
 const (
 	// 默认心跳间隔
 	defaultHeartbeatInterval = 30000
-	// 默认超时
-	defaultTimeout = 30000
+	// 默认读取超时
+	defaultReadTimeout = 30000
+	// 默认写入超时
+	defaultWriteTimeout = 5000
+	// 默认连接超时
+	defaultDialTimeout = 2000
 	// MaxInFlight
 	defaultMaxInFlight = 1024
 	// 默认线程数
@@ -44,9 +48,9 @@ func newConfig() *Config {
 		NsqLookupdAddress: "",
 		AuthSecret:        "",
 		HeartbeatInterval: defaultHeartbeatInterval,
-		ReadTimeout:       defaultTimeout,
-		WriteTimeout:      defaultTimeout,
-		DialTimeout:       defaultTimeout,
+		ReadTimeout:       defaultReadTimeout,
+		WriteTimeout:      defaultWriteTimeout,
+		DialTimeout:       defaultDialTimeout,
 		MaxInFlight:       defaultMaxInFlight,
 		ThreadCount:       defaultThreadCount,
 	}
@@ -55,6 +59,15 @@ func newConfig() *Config {
 func (conf *Config) Check() {
 	if conf.HeartbeatInterval <= 0 {
 		conf.HeartbeatInterval = -1
+	}
+	if conf.ReadTimeout <= 0 {
+		conf.ReadTimeout = defaultReadTimeout
+	}
+	if conf.WriteTimeout <= 0 {
+		conf.WriteTimeout = defaultWriteTimeout
+	}
+	if conf.DialTimeout <= 0 {
+		conf.DialTimeout = defaultDialTimeout
 	}
 	if conf.MaxInFlight <= 0 {
 		conf.MaxInFlight = defaultMaxInFlight
