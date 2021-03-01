@@ -40,7 +40,9 @@ func (n *NsqConsumeService) Start() error {
 	if err != nil {
 		return err
 	}
-	conf.Check()
+	if err = conf.Check(); err != nil {
+		return fmt.Errorf("服务%s的配置错误: %s", nowServiceType, err)
+	}
 
 	// 检查配置
 	var nsqdAddress, nsqLookupdAddress []string
@@ -48,8 +50,6 @@ func (n *NsqConsumeService) Start() error {
 		nsqLookupdAddress = strings.Split(conf.NsqLookupdAddress, ",")
 	} else if conf.NsqdAddress != "" {
 		nsqdAddress = strings.Split(conf.NsqdAddress, ",")
-	} else {
-		return fmt.Errorf("nsq消费服务address为空")
 	}
 
 	// 创建消费者

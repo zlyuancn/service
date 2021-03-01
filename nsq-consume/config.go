@@ -9,6 +9,7 @@
 package nsq_consume
 
 import (
+	"errors"
 	"runtime"
 )
 
@@ -56,7 +57,7 @@ func newConfig() *Config {
 	}
 }
 
-func (conf *Config) Check() {
+func (conf *Config) Check() error {
 	if conf.HeartbeatInterval <= 0 {
 		conf.HeartbeatInterval = -1
 	}
@@ -75,4 +76,9 @@ func (conf *Config) Check() {
 	if conf.ThreadCount <= 0 {
 		conf.ThreadCount = runtime.NumCPU()
 	}
+	if conf.NsqdAddress == "" && conf.NsqLookupdAddress == "" {
+		return errors.New("address为空")
+	}
+
+	return nil
 }
