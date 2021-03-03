@@ -24,11 +24,13 @@ const (
 	defaultDialTimeout = 2000
 	// MaxInFlight
 	defaultMaxInFlight = 1024
-	// 默认线程数
-	defaultThreadCount = 0
+	// 默认延时时间
+	defaultRequeueDelay = 60000
+	// 默认最大延时时间
+	defaultMaxRequeueDelay = 600000
 )
 
-type Config struct {
+type ServiceConfig struct {
 	NsqdAddress       string // nsqd地址, localhost1:4150,localhost2:4150
 	NsqLookupdAddress string // nsq发现服务地址, 优先级高于NsqdAddress, localhost1:4161,localhost2:4161
 	AuthSecret        string // 验证秘钥
@@ -40,24 +42,21 @@ type Config struct {
 	// 默认线程数, 默认为0表示使用逻辑cpu数量
 	//
 	// 同时处理信息的goroutine数
-	ThreadCount int
+	ThreadCount            int
+	RequeueDelay           int64  // 默认延时时间, 延时时间为-1时和消费失败自动发送延时消息时生效, 实际延时时间=延时时间x尝试次数(毫秒)
+	MaxRequeueDelay        int64  // 默认最大延时时间, 延时时间为-1时和消费失败自动发送延时消息时生效
+	MaxAutoRequeueAttempts uint16 // 最大自动重排次数, 0表示不限
 }
 
-func newConfig() *Config {
-	return &Config{
+func newConfig() *ServiceConfig {
+	return &ServiceConfig{
 		NsqdAddress:       "",
 		NsqLookupdAddress: "",
 		AuthSecret:        "",
-		HeartbeatInterval: defaultHeartbeatInterval,
-		ReadTimeout:       defaultReadTimeout,
-		WriteTimeout:      defaultWriteTimeout,
-		DialTimeout:       defaultDialTimeout,
-		MaxInFlight:       defaultMaxInFlight,
-		ThreadCount:       defaultThreadCount,
 	}
 }
 
-func (conf *Config) Check() error {
+func (conf *ServiceConfig) Check() error {
 	if conf.ReadTimeout <= 0 {
 		conf.ReadTimeout = defaultReadTimeout
 	}
@@ -79,6 +78,13 @@ func (conf *Config) Check() error {
 	if conf.ThreadCount <= 0 {
 		conf.ThreadCount = runtime.NumCPU()
 	}
+	if conf.RequeueDelay <= 0 {
+		conf.RequeueDelay = defaultRequeueDelay
+	}
+	if conf.MaxRequeueDelay <= 0 {
+		conf.MaxRequeueDelay = defaultMaxRequeueDelay
+	}
+
 	if conf.NsqdAddress == "" && conf.NsqLookupdAddress == "" {
 		return errors.New("address为空")
 	}

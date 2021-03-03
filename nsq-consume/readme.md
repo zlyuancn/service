@@ -38,24 +38,12 @@ func main() {
 
 # 配置
 
-> 默认服务类型为 `nsq-consume`
+> 默认服务类型为 `nsq-consume`, 完整配置说明参考 [Config](./config.go)
 
 ```toml
 [services.nsq-consume]
 # nsqd地址, localhost1:4150,localhost2:4150
 NsqdAddress="localhost:4150"
 # nsq发现服务地址, 优先级高于NsqdAddress, localhost1:4161,localhost2:4161
-NsqLookupdAddress=""
-# 验证秘钥
-AuthSecret=""
-# 心跳间隔(毫秒), 不能超过ReadTimeout
-HeartbeatInterval=30000
-# 超时(毫秒)
-ReadTimeout=30000
-# 超时(毫秒)
-WriteTimeout=5000
-# 超时(毫秒)
-DialTimeout=2000
-# 线程数, 默认为0表示使用逻辑cpu数量
-ThreadCount=0
+NsqLookupdAddress="localhost:4161"
 ```

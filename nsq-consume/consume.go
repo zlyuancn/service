@@ -11,96 +11,116 @@ package nsq_consume
 import (
 	"fmt"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/nsqio/go-nsq"
 	"github.com/zly-app/zapp/core"
 	"github.com/zly-app/zapp/pkg/utils"
+	"github.com/zlyuancn/zutils"
+	"go.uber.org/zap"
 )
 
-type NsqConsumeService struct {
+type Context struct {
+	core.ILogger
+	*nsq.Message
+	Topic   string
+	Channel string
+}
+type RegistryNsqConsumerHandlerFunc = func(ctx *Context) error
+
+type ConsumerConfig struct {
+	Topic   string
+	Channel string
+	Handler RegistryNsqConsumerHandlerFunc
+	Opts    []ConsumerOption
+	*ServiceConfig
+}
+
+type consumerCli struct {
 	app      core.IApp
-	handlers []*handlerConfig
+	conf     *ConsumerConfig
+	consumer *nsq.Consumer
+	*consumerOptions
 }
 
-func (n *NsqConsumeService) Inject(a ...interface{}) {
-	for _, v := range a {
-		h, ok := v.(*handlerConfig)
-		if !ok {
-			n.app.Fatal("nsq消费服务注入类型错误, 它必须能转为 *nsq_consume.handlerConfig")
-		}
-		n.handlers = append(n.handlers, h)
+func newConsumer(app core.IApp, conf *ConsumerConfig) *consumerCli {
+	c := &consumerCli{
+		app:             app,
+		conf:            conf,
+		consumerOptions: newConsumerOptions(),
 	}
+
+	for _, o := range conf.Opts {
+		o(c.consumerOptions)
+	}
+
+	if c.MaxAutoRequeueAttempts == 0 {
+		c.MaxAutoRequeueAttempts = conf.ServiceConfig.MaxAutoRequeueAttempts
+	}
+	return c
 }
 
-func (n *NsqConsumeService) Start() error {
-	// 加载配置
-	conf := newConfig()
-	err := n.app.GetConfig().ParseServiceConfig(nowServiceType, conf)
-	if err != nil {
-		return err
-	}
-	if err = conf.Check(); err != nil {
-		return fmt.Errorf("服务%s的配置错误: %s", nowServiceType, err)
-	}
-
-	// 检查配置
-	var nsqdAddress, nsqLookupdAddress []string
-	if conf.NsqLookupdAddress != "" {
-		nsqLookupdAddress = strings.Split(conf.NsqLookupdAddress, ",")
-	} else if conf.NsqdAddress != "" {
-		nsqdAddress = strings.Split(conf.NsqdAddress, ",")
-	}
+func (c *consumerCli) Start() error {
+	// 构建配置
+	nsqConf := nsq.NewConfig()
+	nsqConf.AuthSecret = c.conf.AuthSecret
+	nsqConf.HeartbeatInterval = time.Duration(c.conf.HeartbeatInterval) * time.Millisecond
+	nsqConf.ReadTimeout = time.Duration(c.conf.ReadTimeout) * time.Millisecond
+	nsqConf.WriteTimeout = time.Duration(c.conf.WriteTimeout) * time.Millisecond
+	nsqConf.DialTimeout = time.Duration(c.conf.DialTimeout) * time.Millisecond
+	nsqConf.DefaultRequeueDelay = time.Duration(c.conf.RequeueDelay) * time.Millisecond
+	nsqConf.MaxRequeueDelay = time.Duration(c.conf.MaxRequeueDelay) * time.Millisecond
+	nsqConf.MaxInFlight = c.conf.MaxInFlight
 
 	// 创建消费者
-	for _, h := range n.handlers {
-		nsqConf := nsq.NewConfig()
-		nsqConf.AuthSecret = conf.AuthSecret
-		nsqConf.HeartbeatInterval = time.Duration(conf.HeartbeatInterval) * time.Millisecond
-		nsqConf.ReadTimeout = time.Duration(conf.ReadTimeout) * time.Millisecond
-		nsqConf.WriteTimeout = time.Duration(conf.WriteTimeout) * time.Millisecond
-		nsqConf.DialTimeout = time.Duration(conf.DialTimeout) * time.Millisecond
-		nsqConf.MaxInFlight = conf.MaxInFlight
-
-		consumer, err := nsq.NewConsumer(h.Topic, h.Channel, nsqConf)
-		if err != nil {
-			return fmt.Errorf("创建nsq消费者失败, topic:%s, channel:%s, err:%s", h.Topic, h.Channel, err)
-		}
-		h.SetConsumer(n.app, consumer)
-		consumer.AddConcurrentHandlers(h, utils.Ternary.Or(h.ThreadCount, conf.ThreadCount).(int))
+	consumer, err := nsq.NewConsumer(c.conf.Topic, c.conf.Channel, nsqConf)
+	if err != nil {
+		return fmt.Errorf("创建nsq消费者失败, topic:%s, channel:%s, err:%s", c.conf.Topic, c.conf.Channel, err)
 	}
+	c.consumer = consumer
+
+	// 添加消费handler
+	c.consumer.AddConcurrentHandlers(c, utils.Ternary.Or(c.ThreadCount, c.conf.ThreadCount).(int))
 
 	// 连接
-	for _, h := range n.handlers {
-		if len(nsqLookupdAddress) > 0 {
-			err = h.consumer.ConnectToNSQLookupds(nsqLookupdAddress)
-		} else {
-			err = h.consumer.ConnectToNSQDs(nsqdAddress)
-		}
-		if err != nil {
-			return fmt.Errorf("nsq消费服务启动失败: %s", err)
-		}
+	if c.conf.NsqLookupdAddress != "" {
+		addresses := strings.Split(c.conf.NsqLookupdAddress, ",")
+		return c.consumer.ConnectToNSQLookupds(addresses)
 	}
+	addresses := strings.Split(c.conf.NsqdAddress, ",")
+	return c.consumer.ConnectToNSQDs(addresses)
+}
+
+func (c *consumerCli) Close() error {
+	c.consumer.Stop()
+	<-c.consumer.StopChan
 	return nil
 }
 
-func (n *NsqConsumeService) Close() error {
-	var wg sync.WaitGroup
-	wg.Add(len(n.handlers))
-	for _, h := range n.handlers {
-		go func(consumer *nsq.Consumer) {
-			defer wg.Done()
-			consumer.Stop()
-			<-consumer.StopChan
-		}(h.consumer)
+func (c *consumerCli) HandleMessage(message *nsq.Message) error {
+	ctx := &Context{
+		ILogger: c.app.NewMirrorLogger(c.conf.Topic, c.conf.Channel, string(message.ID[:])),
+		Message: message,
+		Topic:   c.conf.Topic,
+		Channel: c.conf.Channel,
 	}
-	wg.Wait()
-	return nil
-}
 
-func NewNsqConsumerService(app core.IApp) core.IService {
-	return &NsqConsumeService{
-		app: app,
+	ctx.Debug("nsqConsumer.receive")
+	err := zutils.Recover.WrapCall(func() error {
+		return c.conf.Handler(ctx)
+	})
+
+	if err == nil {
+		ctx.Debug("nsqConsumer.success")
+		return nil
 	}
+
+	// 检查最大自动重排次数
+	if !ctx.IsAutoResponseDisabled() && c.MaxAutoRequeueAttempts > 0 && ctx.Attempts >= c.MaxAutoRequeueAttempts {
+		ctx.Error("nsqConsumer.error! reach the maximum automatic Requeue Attempts", zap.Error(err))
+		return nil
+	}
+
+	ctx.Error("nsqConsumer.error!", zap.Error(err))
+	return err
 }
