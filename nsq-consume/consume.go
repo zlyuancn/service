@@ -23,9 +23,16 @@ import (
 type Context struct {
 	core.ILogger
 	*nsq.Message
-	Topic   string
-	Channel string
+	Topic               string
+	Channel             string
+	disableAutoRequeued bool // 关闭自动重排
 }
+
+// 关闭自动重排
+func (ctx *Context) DisableAutoRequeued() {
+	ctx.disableAutoRequeued = true
+}
+
 type RegistryNsqConsumerHandlerFunc = func(ctx *Context) error
 
 type ConsumerConfig struct {
@@ -75,7 +82,7 @@ func (c *consumerCli) Start() error {
 	nsqConf.DefaultRequeueDelay = time.Duration(c.conf.RequeueDelay) * time.Millisecond
 	nsqConf.MaxRequeueDelay = time.Duration(c.conf.MaxRequeueDelay) * time.Millisecond
 	nsqConf.MaxInFlight = c.conf.MaxInFlight
-	nsqConf.MaxAttempts = 0
+	nsqConf.MaxAttempts = 0 // 解开sdk限制由我们实现
 
 	// 创建消费者
 	consumer, err := nsq.NewConsumer(c.conf.Topic, c.conf.Channel, nsqConf)
@@ -125,13 +132,13 @@ func (c *consumerCli) HandleMessage(message *nsq.Message) error {
 	}
 
 	// 如果关闭了自动重排
-	if ctx.IsAutoResponseDisabled() {
+	if ctx.disableAutoRequeued {
 		ctx.Error("nsqConsumer.error! and requeued is closed", zap.Error(err))
 		return nil
 	}
 
 	// 检查自动重排次数
-	if c.ConsumeAttempts > 0 && ctx.Attempts >= c.ConsumeAttempts {
+	if ctx.Attempts >= c.ConsumeAttempts {
 		ctx.Error("nsqConsumer.error! reach the maximum automatic Requeue Attempts", zap.Error(err))
 		return nil
 	}

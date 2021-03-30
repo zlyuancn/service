@@ -29,7 +29,7 @@ const (
 	// 默认最大延时时间
 	defaultMaxRequeueDelay = 600000
 	// 默认消费尝试次数
-	defaultConsumeAttempts = 5
+	defaultConsumeAttempts = 3
 )
 
 type ServiceConfig struct {
@@ -47,7 +47,7 @@ type ServiceConfig struct {
 	ThreadCount     int
 	RequeueDelay    int64  // 默认延时时间, 延时时间为-1时和消费失败自动发送延时消息时生效, 实际延时时间=延时时间x尝试次数(毫秒)
 	MaxRequeueDelay int64  // 默认最大延时时间, 延时时间为-1时和消费失败自动发送延时消息时生效
-	ConsumeAttempts uint16 // 消费尝试次数, 默认5, 最大65535
+	ConsumeAttempts uint16 // 消费尝试次数, 默认3, 最大65535
 }
 
 func newConfig() *ServiceConfig {
