@@ -55,7 +55,7 @@ func newConsumer(app core.IApp, conf *ConsumerConfig) *consumerCli {
 	}
 
 	if c.MaxAutoRequeueAttempts == 0 {
-		c.MaxAutoRequeueAttempts = conf.ServiceConfig.MaxAutoRequeueAttempts
+		c.MaxAutoRequeueAttempts = conf.MaxAutoRequeueAttempts
 	}
 	return c
 }

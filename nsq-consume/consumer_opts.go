@@ -17,7 +17,8 @@ type ConsumerOption func(opts *consumerOptions)
 
 func newConsumerOptions() *consumerOptions {
 	return &consumerOptions{
-		ThreadCount: 0,
+		ThreadCount:            0,
+		MaxAutoRequeueAttempts: 0,
 	}
 }
 
