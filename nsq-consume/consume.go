@@ -54,8 +54,8 @@ func newConsumer(app core.IApp, conf *ConsumerConfig) *consumerCli {
 		o(c.consumerOptions)
 	}
 
-	if c.MaxAutoRequeueAttempts == 0 {
-		c.MaxAutoRequeueAttempts = conf.MaxAutoRequeueAttempts
+	if c.ConsumeAttempts == 0 {
+		c.ConsumeAttempts = conf.ConsumeAttempts
 	}
 	return c
 }
@@ -75,6 +75,7 @@ func (c *consumerCli) Start() error {
 	nsqConf.DefaultRequeueDelay = time.Duration(c.conf.RequeueDelay) * time.Millisecond
 	nsqConf.MaxRequeueDelay = time.Duration(c.conf.MaxRequeueDelay) * time.Millisecond
 	nsqConf.MaxInFlight = c.conf.MaxInFlight
+	nsqConf.MaxAttempts = 0
 
 	// 创建消费者
 	consumer, err := nsq.NewConsumer(c.conf.Topic, c.conf.Channel, nsqConf)
@@ -123,8 +124,14 @@ func (c *consumerCli) HandleMessage(message *nsq.Message) error {
 		return nil
 	}
 
-	// 检查最大自动重排次数
-	if !ctx.IsAutoResponseDisabled() && c.MaxAutoRequeueAttempts > 0 && ctx.Attempts >= c.MaxAutoRequeueAttempts {
+	// 如果关闭了自动重排
+	if ctx.IsAutoResponseDisabled() {
+		ctx.Error("nsqConsumer.error! and requeued is closed", zap.Error(err))
+		return nil
+	}
+
+	// 检查自动重排次数
+	if c.ConsumeAttempts > 0 && ctx.Attempts >= c.ConsumeAttempts {
 		ctx.Error("nsqConsumer.error! reach the maximum automatic Requeue Attempts", zap.Error(err))
 		return nil
 	}

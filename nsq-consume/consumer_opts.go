@@ -9,18 +9,18 @@
 package nsq_consume
 
 type consumerOptions struct {
-	Disable                bool // 禁用
-	ThreadCount            int
-	MaxAutoRequeueAttempts uint16
+	Disable         bool // 禁用
+	ThreadCount     int
+	ConsumeAttempts uint16
 }
 
 type ConsumerOption func(opts *consumerOptions)
 
 func newConsumerOptions() *consumerOptions {
 	return &consumerOptions{
-		Disable:                false,
-		ThreadCount:            0,
-		MaxAutoRequeueAttempts: 0,
+		Disable:         false,
+		ThreadCount:     0,
+		ConsumeAttempts: 0,
 	}
 }
 
@@ -43,9 +43,9 @@ func WithConsumerThreadCount(threadCount int) ConsumerOption {
 	}
 }
 
-// 最大自动重入队次数, 默认为0表示使用配置的次数
-func WithConsumerMaxAutoRequeueAttempts(attempts uint16) ConsumerOption {
+// 消费尝试次数, 默认为0表示使用全局配置的次数
+func WithConsumerAttempts(attempts uint16) ConsumerOption {
 	return func(opts *consumerOptions) {
-		opts.MaxAutoRequeueAttempts = attempts
+		opts.ConsumeAttempts = attempts
 	}
 }
