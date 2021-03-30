@@ -9,6 +9,7 @@
 package nsq_consume
 
 type consumerOptions struct {
+	Disable                bool // 禁用
 	ThreadCount            int
 	MaxAutoRequeueAttempts uint16
 }
@@ -17,8 +18,16 @@ type ConsumerOption func(opts *consumerOptions)
 
 func newConsumerOptions() *consumerOptions {
 	return &consumerOptions{
+		Disable:                false,
 		ThreadCount:            0,
 		MaxAutoRequeueAttempts: 0,
+	}
+}
+
+// 禁用
+func WithConsumerDisable(disable ...bool) ConsumerOption {
+	return func(opts *consumerOptions) {
+		opts.Disable = len(disable) == 0 || disable[0]
 	}
 }
 

@@ -61,6 +61,10 @@ func newConsumer(app core.IApp, conf *ConsumerConfig) *consumerCli {
 }
 
 func (c *consumerCli) Start() error {
+	if c.Disable {
+		return nil
+	}
+
 	// 构建配置
 	nsqConf := nsq.NewConfig()
 	nsqConf.AuthSecret = c.conf.AuthSecret
@@ -92,6 +96,10 @@ func (c *consumerCli) Start() error {
 }
 
 func (c *consumerCli) Close() error {
+	if c.Disable {
+		return nil
+	}
+
 	c.consumer.Stop()
 	<-c.consumer.StopChan
 	return nil

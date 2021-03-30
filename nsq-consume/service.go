@@ -52,7 +52,7 @@ func (n *NsqConsumeService) Close() error {
 	for _, consumer := range n.consumers {
 		go func(consumer *consumerCli) {
 			defer wg.Done()
-			consumer.Close()
+			_ = consumer.Close()
 		}(consumer)
 	}
 	wg.Wait()
