@@ -206,6 +206,10 @@ func (a *analyzer) parseWKB(data []byte) ([]byte, error) {
 }
 
 func (a *analyzer) parseWKBOfPoint(data []byte) ([]float64, error) {
+	if len(data) == 0 {
+		return []float64{0, 0}, nil
+	}
+
 	if len(data) != 25 {
 		return nil, errors.New("point data is incomplete")
 	}
