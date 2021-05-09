@@ -28,7 +28,7 @@ func RegistryService(serviceType ...core.ServiceType) {
 	}
 	nowServiceType = t
 	service.RegisterCreatorFunc(t, func(app core.IApp) core.IService {
-		return NewNsqConsumerService(app)
+		return NewNsqConsumeService(app)
 	})
 }
 
@@ -38,6 +38,11 @@ func WithNsqConsumeService() zapp.Option {
 }
 
 // 注册handler
-func RegistryNsqConsumeHandler(app core.IApp, topic, channel string, handler RegistryNsqConsumerHandlerFunc) {
-	app.InjectService(nowServiceType, newHandlerConfig(app, topic, channel, handler))
+func RegistryNsqConsumeHandler(app core.IApp, topic, channel string, handler RegistryNsqConsumerHandlerFunc, opts ...ConsumerOption) {
+	app.InjectService(nowServiceType, &ConsumerConfig{
+		Topic:   topic,
+		Channel: channel,
+		Handler: handler,
+		Opts:    opts,
+	})
 }

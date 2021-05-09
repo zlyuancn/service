@@ -188,6 +188,10 @@ func (a *analyzer) parseValue(t int, rawType string, v interface{}) (interface{}
 }
 
 func (a *analyzer) parseWKB(data []byte) ([]byte, error) {
+	if len(data) == 0 {
+		return []byte("null"), nil
+	}
+
 	if len(data) <= 4 {
 		return nil, errors.New("wkb data is incomplete")
 	}
@@ -206,6 +210,10 @@ func (a *analyzer) parseWKB(data []byte) ([]byte, error) {
 }
 
 func (a *analyzer) parseWKBOfPoint(data []byte) ([]float64, error) {
+	if len(data) == 0 {
+		return []float64{0, 0}, nil
+	}
+
 	if len(data) != 25 {
 		return nil, errors.New("point data is incomplete")
 	}
