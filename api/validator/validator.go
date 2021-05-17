@@ -43,6 +43,7 @@ func NewValidator() IValidator {
 
 	_ = validate.RegisterValidation("regex", validateRegex)
 	_ = validate.RegisterValidation("time", validateTime)
+	_ = validate.RegisterValidation("date", validateDate)
 	return &Validator{
 		validateTrans: vt,
 		validate:      validate,
@@ -61,6 +62,18 @@ func validateTime(f validator.FieldLevel) bool {
 	layout := f.Param()
 	if layout == "" {
 		layout = "2006-01-02 15:04:05"
+	}
+	text := f.Field().String()
+
+	_, err := time.ParseInLocation(layout, text, time.Local)
+	return err == nil
+}
+
+// 日期匹配
+func validateDate(f validator.FieldLevel) bool {
+	layout := f.Param()
+	if layout == "" {
+		layout = "2006-01-02"
 	}
 	text := f.Field().String()
 
