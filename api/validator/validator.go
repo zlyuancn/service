@@ -40,6 +40,7 @@ func NewValidator() IValidator {
 	vt, _ := ut.New(zh, zh).GetTranslator("zh")
 
 	validate := validator.New()
+	validate.SetTagName("bind")
 	_ = zh_translations.RegisterDefaultTranslations(validate, vt)
 
 	_ = validate.RegisterValidation("regex", validateRegex)
