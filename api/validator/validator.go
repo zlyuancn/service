@@ -11,6 +11,7 @@ package validator
 import (
 	"errors"
 	"regexp"
+	"strings"
 	"time"
 
 	zhongwen "github.com/go-playground/locales/zh"
@@ -81,30 +82,37 @@ func validateDate(f validator.FieldLevel) bool {
 	return err == nil
 }
 
+// 注册校验规则
 func (v *Validator) RegisterValidationRule(tag string, fn validator.Func) error {
 	return v.validate.RegisterValidation(tag, fn)
 }
 
+// 校验struct
 func (v *Validator) Valid(a interface{}) error {
 	err := v.validate.Struct(a)
 	return v.translateValidateErr(err)
 }
 
+// 校验一个字段
 func (v *Validator) ValidField(a interface{}, tag string) error {
 	err := v.validate.Var(a, tag)
 	return v.translateValidateErr(err)
 }
 
+// 将错误描述转为中文
 func (v *Validator) translateValidateErr(err error) error {
-	if err != nil {
-		errs, ok := err.(validator.ValidationErrors)
-		if !ok {
-			return err
-		}
-
-		for _, e := range errs {
-			return errors.New(e.Translate(v.validateTrans))
-		}
+	if err == nil {
+		return nil
 	}
-	return nil
+
+	errs, ok := err.(validator.ValidationErrors)
+	if !ok || len(errs) == 0 {
+		return err
+	}
+
+	errTexts := make([]string, len(errs))
+	for i, e := range errs {
+		errTexts[i] = e.Translate(v.validateTrans)
+	}
+	return errors.New(strings.Join(errTexts, "\n"))
 }
