@@ -38,6 +38,10 @@ func WithApiService() zapp.Option {
 }
 
 // 注册路由
-func RegistryApiRouter(app core.IApp, fn RegisterApiRouterFunc) {
-	app.InjectService(nowServiceType, fn)
+func RegistryApiRouter(app core.IApp, fn ...RegisterApiRouterFunc) {
+	a := make([]interface{}, len(fn))
+	for i, h := range fn {
+		a[i] = h
+	}
+	app.InjectService(nowServiceType, a...)
 }

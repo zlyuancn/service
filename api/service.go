@@ -44,16 +44,14 @@ func NewHttpService(app core.IApp) core.IService {
 }
 
 func (a *ApiService) Inject(sc ...interface{}) {
-	if len(sc) != 1 {
-		a.app.Fatal("api服务注入数量必须为1个")
-	}
+	for _, h := range sc {
+		fn, ok := h.(RegisterApiRouterFunc)
+		if !ok {
+			a.app.Fatal("api服务注入类型错误, 它必须能转为 api.RegisterApiRouterFunc")
+		}
 
-	fn, ok := sc[0].(RegisterApiRouterFunc)
-	if !ok {
-		a.app.Fatal("api服务注入类型错误, 它必须能转为 api.RegisterApiRouterFunc")
+		fn(a.app.GetComponent(), a.Party("/"))
 	}
-
-	fn(a.app.GetComponent(), a.Party("/"))
 }
 
 func (a *ApiService) Start() error {
