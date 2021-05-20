@@ -38,119 +38,18 @@ type Response struct {
 var typeOfContext = reflect.TypeOf((*Context)(nil))
 var typeOfError = reflect.TypeOf((*error)(nil)).Elem()
 
-// 检查 handler 指纹
-func checkHandlerFingerprint(handler interface{}, handlerType reflect.Type) {
-	if handlerType.Kind() != reflect.Func {
-		logger.Log.Fatal("handler必须是函数", zap.String("handler", fmt.Sprintf("%T", handler)))
-	}
-
-	// 检查入参
-	if handlerType.NumIn() < 1 || handlerType.NumIn() > 2 {
-		logger.Log.Fatal("handler的入参数量为1个或2个", zap.String("handler", fmt.Sprintf("%T", handler)))
-	}
-
-	// 检查第一个参数
-	arg0 := handlerType.In(0)
-	if !arg0.AssignableTo(typeOfContext) {
-		logger.Log.Fatal("handler的第一个入参必须是 *api.Context", zap.String("handler", fmt.Sprintf("%T", handler)))
-	}
-
-	// 检查出参
-	if handlerType.NumOut() < 1 || handlerType.NumOut() > 2 {
-		logger.Log.Fatal("handler的出参数量为1个或2个", zap.String("handler", fmt.Sprintf("%T", handler)))
-	}
-
-	// 如果出参数为2个, 最后一个出参必须是error
-	if handlerType.NumOut() == 2 {
-		out1 := handlerType.Out(1)
-		if !out1.AssignableTo(typeOfError) {
-			logger.Log.Fatal("handler的第二个出参必须是 error", zap.String("handler", fmt.Sprintf("%T", handler)))
-		}
-	}
-}
-
-// 根据 handler 构建req建造者
-//
-// req 是 handler 的第二个入参, 如果入参数量小于 2 返回 nil
-// req 必须是 struct 或 *struct
-func mustMakeReqCreator(handler interface{}, handlerType reflect.Type) func(ctx *Context) (reflect.Value, error) {
-	if handlerType.NumIn() < 2 {
-		return nil
-	}
-
-	// 检查 req 是 struct 或 *struct
-	arg1 := handlerType.In(1)              // 获取req的类型
-	reqIsPtr := arg1.Kind() == reflect.Ptr // req参数是否为指针
-	if reqIsPtr {
-		arg1 = arg1.Elem() // 获取req的真实类型
-	}
-	if arg1.Kind() != reflect.Struct {
-		logger.Log.Fatal("handler的第二个入参必须是 struct 或 *struct", zap.String("handler", fmt.Sprintf("%T", handler)))
-	}
-
-	// 返回建造者
-	return func(ctx *Context) (reflect.Value, error) {
-		req := reflect.New(arg1)                          // 创建req实例
-		if err := ctx.Bind(req.Interface()); err != nil { // bind参数
-			return req, err
-		}
-
-		if reqIsPtr { // 如果req是指针, 直接返回
-			return req, nil
-		}
-		return req.Elem(), nil // 非指针要返回指向对象
-	}
-}
-
-// 构建handler
-func makeHandler(handler interface{}, handlerType reflect.Type) Handler {
-	hValue := reflect.ValueOf(handler)
-	reqCreator := mustMakeReqCreator(handler, handlerType)
-
-	h := func(ctx *Context) interface{} {
-		var outValues []reflect.Value
-
-		// 调用handler
-		if reqCreator == nil { // 如果没有req建造者, 表示不需要req参数
-			outValues = hValue.Call([]reflect.Value{reflect.ValueOf(ctx)})
-		} else {
-			reqValue, err := reqCreator(ctx)
-			if err != nil {
-				return err
-			}
-			outValues = hValue.Call([]reflect.Value{reflect.ValueOf(ctx), reqValue})
-		}
-
-		// 检查结果
-		if len(outValues) == 1 { // 如果只有一个结果直接返回
-			return outValues[0].Interface()
-		}
-
-		err := outValues[1].Interface()
-		if err != nil {
-			return err.(error)
-		}
-		return outValues[0].Interface()
-	}
-	return h
-}
-
 // 包装处理程序
 func wrap(handler interface{}, isMiddleware bool) iris.Handler {
 	if handler == nil {
 		logger.Log.Fatal("handler为nil", zap.String("handler", fmt.Sprintf("%T", handler)))
 	}
 
-	h, ok := handler.(Handler)
-	if !ok {
-		hType := reflect.TypeOf(handler)
-		checkHandlerFingerprint(handler, hType) // 检查handler指纹
-		h = makeHandler(handler, hType)         // 构建handler
-	}
+	h := newHandler(handler)
+	fn := h.MakeHandler()
 
 	return func(irisCtx *iris_context.Context) {
 		ctx := makeContext(irisCtx) // 构建上下文
-		result := h(ctx)            // 处理
+		result := fn(ctx)           // 处理
 
 		// 如果是中间件, 只有返回nil才能继续调用链, 非nil值表示拦截, 并将结果处理后返回给客户端
 		if isMiddleware && result == nil { // 返回nil继续调用链

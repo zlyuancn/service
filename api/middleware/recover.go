@@ -10,23 +10,21 @@ package middleware
 
 import (
 	"fmt"
-	"runtime"
 	"strconv"
 	"strings"
 
 	"github.com/kataras/iris/v12"
-	"github.com/zlyuancn/zutils"
+	app_config "github.com/zly-app/zapp/config"
 
 	"github.com/zly-app/service/api/config"
 	"github.com/zly-app/service/api/utils"
-	app_config "github.com/zly-app/zapp/config"
 )
 
 func Recover() iris.Handler {
 	isDebug := &app_config.Conf.Config().Frame.Debug
 	showDetailedErrorInProduction := &config.Conf.ShowDetailedErrorInProduction
 	return func(ctx iris.Context) {
-		err := zutils.Recover.WrapCall(func() error {
+		err := WrapCall(func() error {
 			ctx.Next()
 			return nil
 		})
@@ -39,16 +37,17 @@ func Recover() iris.Handler {
 		}
 
 		var callers []string
-		for i := 1; ; i++ {
-			_, file, line, got := runtime.Caller(i)
-			if !got {
-				break
+		if re, ok := err.(RecoverError); ok {
+			callers = make([]string, len(re.Callers()))
+			for i, c := range re.Callers() {
+				callers[i] = fmt.Sprintf("%s:%d", c.File, c.Line)
 			}
-
-			callers = append(callers, fmt.Sprintf("%s:%d", file, line))
+		} else {
+			callers = append(callers, err.Error())
 		}
 
-		logMessage := fmt.Sprintf("Recovered from a route's Handler('%s')\n", ctx.HandlerName())
+		handlerName := ctx.Values().GetStringDefault("_handler_name", ctx.HandlerName())
+		logMessage := fmt.Sprintf("Recovered from a route's Handler('%s')\n", handlerName)
 		logMessage += fmt.Sprint(getRequestLogs(ctx))
 		logMessage += fmt.Sprintf("err: %s\n", err)
 		logMessage += strings.Join(callers, "\n")
