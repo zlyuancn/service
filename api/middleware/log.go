@@ -15,9 +15,10 @@ import (
 	"github.com/kataras/iris/v12"
 	"go.uber.org/zap"
 
+	"github.com/zly-app/zapp/core"
+
 	"github.com/zly-app/service/api/config"
 	"github.com/zly-app/service/api/utils"
-	"github.com/zly-app/zapp/core"
 )
 
 func LoggerMiddleware(app core.IApp) iris.Handler {
@@ -31,9 +32,11 @@ func LoggerMiddleware(app core.IApp) iris.Handler {
 
 		ctx.Next()
 
+		latency := time.Since(startTime)
 		fields := []interface{}{
 			"api.response", zap.String("query", ctx.Request().URL.RawQuery),
-			zap.String("latency", time.Since(startTime).String()),
+			zap.String("latency_text", latency.String()),
+			zap.Duration("latency", latency),
 			zap.String("ip", ctx.RemoteAddr()),
 		}
 
