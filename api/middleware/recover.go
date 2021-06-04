@@ -10,11 +10,12 @@ package middleware
 
 import (
 	"fmt"
-	"strconv"
 	"strings"
 
 	"github.com/kataras/iris/v12"
 	app_config "github.com/zly-app/zapp/config"
+	app_utils "github.com/zly-app/zapp/pkg/utils"
+	"go.uber.org/zap"
 
 	"github.com/zly-app/service/api/config"
 	"github.com/zly-app/service/api/utils"
@@ -24,7 +25,7 @@ func Recover() iris.Handler {
 	isDebug := &app_config.Conf.Config().Frame.Debug
 	showDetailedErrorInProduction := &config.Conf.ShowDetailedErrorInProduction
 	return func(ctx iris.Context) {
-		err := WrapCall(func() error {
+		err := app_utils.Recover.WrapCall(func() error {
 			ctx.Next()
 			return nil
 		})
@@ -36,42 +37,25 @@ func Recover() iris.Handler {
 			return
 		}
 
-		var callers []string
-		if re, ok := err.(RecoverError); ok {
-			callers = make([]string, len(re.Callers()))
-			for i, c := range re.Callers() {
-				callers[i] = fmt.Sprintf("%s:%d", c.File, c.Line)
-			}
-		} else {
-			callers = append(callers, err.Error())
-		}
+		ctx.Values().Set("error", err)
 
 		handlerName := ctx.Values().GetStringDefault("_handler_name", ctx.HandlerName())
-		logMessage := fmt.Sprintf("Recovered from a route's Handler('%s')\n", handlerName)
-		logMessage += fmt.Sprint(getRequestLogs(ctx))
-		logMessage += fmt.Sprintf("err: %s\n", err)
-		logMessage += strings.Join(callers, "\n")
+		panicErrInfos := strings.Split(app_utils.Recover.GetRecoverErrorDetail(err), "\n")
+
 		log := utils.Context.MustGetLoggerFromIrisContext(ctx)
-		log.Error(logMessage)
-		ctx.Values().Set("error", err)
+		log.Error(strings.Join(panicErrInfos, "\n"), zap.Bool("panic", true), zap.String("handler_name", handlerName))
 
 		result := map[string]interface{}{
 			"err_code": 1,
-			"err_msg":  strings.Split(logMessage, "\n"),
+			"err_msg":  "service internal error",
 		}
-		if !*isDebug && !*showDetailedErrorInProduction {
-			result["err_msg"] = "service internal error"
+		if *isDebug || *showDetailedErrorInProduction {
+			result["err_msg"] = append(
+				[]string{fmt.Sprintf("Recovered from a route's Handler('%s')", handlerName)},
+				panicErrInfos...,
+			)
 		}
 		_, _ = ctx.JSON(result)
 		ctx.StopExecution()
 	}
-}
-
-func getRequestLogs(ctx iris.Context) string {
-	var status, ip, method, path string
-	status = strconv.Itoa(ctx.GetStatusCode())
-	path = ctx.Path()
-	method = ctx.Method()
-	ip = ctx.RemoteAddr()
-	return fmt.Sprintf("%v %s %s %s\n", status, path, method, ip)
 }

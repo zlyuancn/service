@@ -12,6 +12,6 @@ require (
 	github.com/kataras/iris/v12 v12.2.0-alpha2
 	github.com/vmihailenco/msgpack/v5 v5.1.4 // indirect
 	github.com/yudai/pp v2.0.1+incompatible // indirect
-	github.com/zly-app/zapp v1.0.7
+	github.com/zly-app/zapp v1.0.9
 	go.uber.org/zap v1.16.0
 )
