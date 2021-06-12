@@ -115,7 +115,11 @@ func (c *consumerCli) Close() error {
 
 func (c *consumerCli) HandleMessage(message *nsq.Message) error {
 	ctx := &Context{
-		ILogger: c.app.NewMirrorLogger(c.conf.Topic, c.conf.Channel, string(message.ID[:])),
+		ILogger: c.app.NewSessionLogger(
+			zap.String("nsq_topic", c.conf.Topic),
+			zap.String("nsq_channel", c.conf.Channel),
+			zap.String("nsq_msg_id", string(message.ID[:])),
+		),
 		Message: message,
 		Topic:   c.conf.Topic,
 		Channel: c.conf.Channel,
