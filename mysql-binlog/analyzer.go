@@ -12,8 +12,8 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/siddontang/go-mysql/canal"
-	"github.com/siddontang/go-mysql/schema"
+	"github.com/go-mysql-org/go-mysql/canal"
+	"github.com/go-mysql-org/go-mysql/schema"
 	"github.com/twpayne/go-geom/encoding/geojson"
 	"github.com/twpayne/go-geom/encoding/wkb"
 	"go.uber.org/zap"

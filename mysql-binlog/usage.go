@@ -27,7 +27,7 @@ func RegistryService(serviceType ...core.ServiceType) {
 		t = serviceType[0]
 	}
 	nowServiceType = t
-	service.RegisterCreatorFunc(t, func(app core.IApp) core.IService {
+	service.RegisterCreatorFunc(t, func(app core.IApp, opts ...interface{}) core.IService {
 		return NewMysqlBinlogService(app)
 	})
 }

@@ -10,11 +10,12 @@ package mysql_binlog
 
 import (
 	"errors"
+	"fmt"
 	"math/rand"
 	"time"
 
-	"github.com/siddontang/go-mysql/canal"
-	"github.com/siddontang/go-mysql/mysql"
+	"github.com/go-mysql-org/go-mysql/canal"
+	"github.com/go-mysql-org/go-mysql/mysql"
 	"go.uber.org/zap"
 
 	"github.com/zly-app/zapp/core"
@@ -63,6 +64,7 @@ func (m *MysqlBinlogService) Start() error {
 		return err
 	}
 
+	// 构建配置
 	cfg := &canal.Config{
 		Addr:                  conf.Host,
 		User:                  conf.UserName,
@@ -87,17 +89,23 @@ func (m *MysqlBinlogService) Start() error {
 		cfg.ExcludeTableRegex = append([]string{}, conf.ExcludeTableRegex...)
 	}
 
+	// 创建canal组件
 	ca, err := canal.NewCanal(cfg)
+	if err != nil {
+		return fmt.Errorf("创建canal组件失败: %v", err)
+	}
+
+	ca.SetEventHandler(m)
 	m.canal = ca
-	m.analyzer = newAnalyzer(m.app, conf.IgnoreWKBDataParseError)
+	m.analyzer = newAnalyzer(m.app, conf.IgnoreWKBDataParseError) // 分析器
 
-	m.canal.SetEventHandler(m)
-
+	// 获取位置
 	binlogName, pos, err := m.handler.GetStartPos()
 	if err != nil {
 		return err
 	}
 
+	// 处理位置
 	switch binlogName {
 	case OldestPos: // 最旧的位置
 		m.app.Debug("mysql-bing服务启动中, 将从最旧位置开始处理")
@@ -105,7 +113,7 @@ func (m *MysqlBinlogService) Start() error {
 	case LatestPos: // 最新的位置
 		pos, err := m.canal.GetMasterPos()
 		if err != nil {
-			return err
+			return fmt.Errorf("获取bing最新位置失败: %v", err)
 		}
 		m.app.Debug("mysql-bing服务启动中, 将从最新位置开始处理", zap.String("binlogName", pos.Name), zap.Uint32("pos", pos.Pos))
 		_ = m.OnPosSynced(pos, nil, true)
