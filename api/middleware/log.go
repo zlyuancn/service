@@ -24,7 +24,7 @@ import (
 func LoggerMiddleware(app core.IApp) iris.Handler {
 	logResultInDevelop := &config.Conf.ShowApiResultInDevelop
 	return func(ctx iris.Context) {
-		log := app.NewMirrorLogger(ctx.Method(), ctx.Path())
+		log := app.NewSessionLogger(zap.String("method", ctx.Method()), zap.String("path", ctx.Path()))
 		utils.Context.SaveLoggerToIrisContext(ctx, log)
 
 		startTime := time.Now()
