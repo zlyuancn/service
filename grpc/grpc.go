@@ -91,7 +91,7 @@ func (g *GrpcService) Close() error {
 // 日志拦截器
 func UnaryServerLogInterceptor(app core.IApp) grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
-		log := app.NewMirrorLogger(info.FullMethod)
+		log := app.NewSessionLogger(zap.String("full_method", info.FullMethod))
 		ctx = SaveLoggerToContext(ctx, log)
 
 		startTime := time.Now()

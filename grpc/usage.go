@@ -27,8 +27,8 @@ func RegistryService(serviceType ...core.ServiceType) {
 		t = serviceType[0]
 	}
 	nowServiceType = t
-	service.RegisterCreatorFunc(t, func(app core.IApp) core.IService {
-		return NewGrpcService(app)
+	service.RegisterCreatorFunc(t, func(app core.IApp, opts ...interface{}) core.IService {
+		return NewGrpcService(app) // todo opts
 	})
 }
 
