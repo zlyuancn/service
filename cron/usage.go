@@ -14,7 +14,6 @@ import (
 	"github.com/zly-app/zapp"
 	"github.com/zly-app/zapp/core"
 	"github.com/zly-app/zapp/service"
-	"github.com/zlyuancn/zscheduler"
 )
 
 // 默认服务类型
@@ -30,8 +29,8 @@ func RegistryService(serviceType ...core.ServiceType) {
 		t = serviceType[0]
 	}
 	nowServiceType = t
-	service.RegisterCreatorFunc(t, func(app core.IApp) core.IService {
-		return NewCronService(app)
+	service.RegisterCreatorFunc(t, func(app core.IApp, opts ...interface{}) core.IService {
+		return NewCronService(app) // todo opts
 	})
 }
 
@@ -41,40 +40,28 @@ func WithCronService() zapp.Option {
 }
 
 // 注册cron的Handler
-func RegistryCronHandler(app core.IApp, name string, expression string, enable bool, handler RegistryCronHandlerFunc) {
-	task := zscheduler.NewTaskOfConfig(name, zscheduler.TaskConfig{
-		Trigger:  zscheduler.NewCronTrigger(expression),
-		Executor: zscheduler.NewExecutor(0, 0, 1),
-		Handler:  wrapHandler(handler),
+func RegistryCronHandler(app core.IApp, name string, expression string, enable bool, handler Handler) {
+	task := NewTaskOfConfig(name, TaskConfig{
+		Trigger:  NewCronTrigger(expression),
+		Executor: NewExecutor(0, 0, 1),
+		Handler:  handler,
 		Enable:   enable,
 	})
 	app.InjectService(nowServiceType, task)
 }
 
 // 注册一次性cron的Handler
-func RegistryCronOnceHandler(app core.IApp, name string, t time.Time, enable bool, handler RegistryCronHandlerFunc) {
-	task := zscheduler.NewTaskOfConfig(name, zscheduler.TaskConfig{
-		Trigger:  zscheduler.NewOnceTrigger(t),
-		Executor: zscheduler.NewExecutor(0, 0, 1),
-		Handler:  wrapHandler(handler),
+func RegistryCronOnceHandler(app core.IApp, name string, t time.Time, enable bool, handler Handler) {
+	task := NewTaskOfConfig(name, TaskConfig{
+		Trigger:  NewOnceTrigger(t),
+		Executor: NewExecutor(0, 0, 1),
+		Handler:  handler,
 		Enable:   enable,
 	})
 	app.InjectService(nowServiceType, task)
 }
 
-func RegistryCronCustomHandler(app core.IApp, name string, conf HandlerConfig) {
-	var trigger zscheduler.ITrigger
-	if conf.Expression != "" {
-		trigger = zscheduler.NewCronTrigger(conf.Expression)
-	} else {
-		trigger = zscheduler.NewOnceTrigger(conf.OnceTime)
-	}
-
-	task := zscheduler.NewTaskOfConfig(name, zscheduler.TaskConfig{
-		Trigger:  trigger,
-		Executor: zscheduler.NewExecutor(conf.RetryCount, conf.RetryInterval, conf.MaxSyncExecuteCount),
-		Handler:  wrapHandler(conf.Handler),
-		Enable:   conf.Enable,
-	})
+// 注册自定义task
+func RegistryTask(app core.IApp, task ITask) {
 	app.InjectService(nowServiceType, task)
 }

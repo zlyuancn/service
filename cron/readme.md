@@ -5,18 +5,17 @@
 
 # 说明
 
-> 此组件基于模块 [github.com/zlyuancn/zscheduler](https://github.com/zlyuancn/zscheduler)
-
 ```text
 cron.RegistryService()             # 注册服务
 cron.WithCronService()             # 启用服务
 cron.RegistryCronHandler(...)           # 服务注入(注册handler)
 cron.RegistryCronOnceHandler(...)       # 服务注入(注册一次性handler)
-cron.RegistryCronCustomHandler(...)     # 服务注入(注册自定义handler)
+cron.RegistryTask(...)                  # 服务注入(注册自定义task)
 ```
 
 # 示例
-```gopackage main
+```go
+package main
 
 import (
 	"github.com/zly-app/service/cron"
@@ -29,7 +28,7 @@ func main() {
 	// 启用cron服务
 	app := zapp.NewApp("test", cron.WithCronService())
 	// 注册handler
-	cron.RegistryCronHandler(app, "c1", "@every 1s", true, func(ctx *cron.Context) error {
+	cron.RegistryCronHandler(app, "c1", "@every 1s", true, func(ctx cron.IContext) error {
 		ctx.Info("触发")
 		return nil
 	})
