@@ -10,6 +10,7 @@ package middleware
 
 import (
 	"fmt"
+	"sort"
 	"time"
 
 	"github.com/kataras/iris/v12"
@@ -20,6 +21,17 @@ import (
 	"github.com/zly-app/service/api/config"
 	"github.com/zly-app/service/api/utils"
 )
+
+func valuesToTexts(values map[string][]string, sep string) []string {
+	var texts []string
+	for k, vs := range values {
+		for _, v := range vs {
+			texts = append(texts, k+sep+v)
+		}
+	}
+	sort.Strings(texts)
+	return texts
+}
 
 func LoggerMiddleware(app core.IApp) iris.Handler {
 	logResultInDevelop := &config.Conf.ShowApiResultInDevelop
@@ -32,8 +44,9 @@ func LoggerMiddleware(app core.IApp) iris.Handler {
 		addr := ctx.RemoteAddr()
 		log.Debug(
 			"api.request",
-			zap.String("query", ctx.Request().URL.RawQuery),
 			zap.String("ip", addr),
+			zap.Strings("headers", valuesToTexts(ctx.Request().Header, ": ")),
+			zap.Strings("params", valuesToTexts(ctx.Request().URL.Query(), "=")),
 		)
 
 		ctx.Next()
