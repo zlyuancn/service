@@ -24,7 +24,7 @@ import (
 
 func Recover() iris.Handler {
 	isDebug := &app_config.Conf.Config().Frame.Debug
-	showDetailedErrorInProduction := &config.Conf.ShowDetailedErrorInProduction
+	sendDetailedErrorInProduction := &config.Conf.SendDetailedErrorInProduction
 	isJson := &app_config.Conf.Config().Frame.Log.Json
 	return func(ctx iris.Context) {
 		err := app_utils.Recover.WrapCall(func() error {
@@ -67,7 +67,7 @@ func Recover() iris.Handler {
 			"err_code": 1,
 			"err_msg":  "service internal error",
 		}
-		if *isDebug || *showDetailedErrorInProduction {
+		if *isDebug || *sendDetailedErrorInProduction {
 			result["err_msg"] = append(
 				[]string{fmt.Sprintf("Recovered from a route's Handler('%s')", handlerName)},
 				panicErrInfos...,

@@ -50,8 +50,8 @@ Bind=":8080"
 IPWithNginxForwarded=true
 # 适配nginx的Real获取ip, 优先级高于sock连接的ip
 IPWithNginxReal=true
-# 在开发环境中显示api结果
-ShowApiResultInDevelop=true
-# 在生产环境显示详细的错误
-ShowDetailedErrorInProduction=false
+# 在开发环境中输出api结果
+LogApiResultInDevelop=true
+# 在生产环境发送详细的错误到客户端
+SendDetailedErrorInProduction=false
 ```

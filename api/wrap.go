@@ -72,8 +72,8 @@ func WriteToCtx(ctx *Context, result interface{}) {
 		code, message := decodeErr(err)
 
 		isProduction := !app_config.Conf.Config().Frame.Debug
-		showDetailedErrorInProduction := config.Conf.ShowDetailedErrorInProduction
-		if !isProduction || showDetailedErrorInProduction {
+		sendDetailedErrorInProduction := config.Conf.SendDetailedErrorInProduction
+		if !isProduction || sendDetailedErrorInProduction {
 			message = err.Error()
 		}
 		_, _ = ctx.JSON(Response{

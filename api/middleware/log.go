@@ -36,7 +36,8 @@ func valuesToTexts(values map[string][]string, sep string) []string {
 }
 
 func LoggerMiddleware(app core.IApp) iris.Handler {
-	logResultInDevelop := &config.Conf.ShowApiResultInDevelop
+	isDebug := &app_config.Conf.Config().Frame.Debug
+	logResultInDevelop := &config.Conf.LogApiResultInDevelop
 	isJson := &app_config.Conf.Config().Frame.Log.Json
 	return func(ctx iris.Context) {
 		startTime := time.Now()
@@ -93,7 +94,7 @@ func LoggerMiddleware(app core.IApp) iris.Handler {
 			fields = append(fields, zap.Error(err))
 			log.Error(fields...)
 		} else {
-			if *logResultInDevelop {
+			if *isDebug && *logResultInDevelop {
 				fields = append(fields, zap.Any("result", ctx.Values().Get("result")))
 			}
 			log.Debug(fields...)
