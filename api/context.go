@@ -15,9 +15,10 @@ import (
 	iris_context "github.com/kataras/iris/v12/context"
 	"go.uber.org/zap"
 
+	"github.com/zly-app/zapp/core"
+
 	"github.com/zly-app/service/api/utils"
 	"github.com/zly-app/service/api/validator"
-	"github.com/zly-app/zapp/core"
 )
 
 type Context struct {
@@ -38,7 +39,7 @@ func (c *Context) Bind(a interface{}) error {
 		return ParamError.WithError(err)
 	}
 
-	c.Debug("api.request.arg", zap.Any("arg", a))
+	c.Debug("api.request.bind", zap.Any("arg", a))
 
 	val := reflect.ValueOf(a)
 	if val.Kind() == reflect.Interface || val.Kind() == reflect.Ptr {

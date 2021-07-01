@@ -9,11 +9,13 @@
 package middleware
 
 import (
+	"bytes"
 	"fmt"
 	"sort"
 	"time"
 
 	"github.com/kataras/iris/v12"
+	app_config "github.com/zly-app/zapp/config"
 	"go.uber.org/zap"
 
 	"github.com/zly-app/zapp/core"
@@ -35,19 +37,43 @@ func valuesToTexts(values map[string][]string, sep string) []string {
 
 func LoggerMiddleware(app core.IApp) iris.Handler {
 	logResultInDevelop := &config.Conf.ShowApiResultInDevelop
+	isJson := &app_config.Conf.Config().Frame.Log.Json
 	return func(ctx iris.Context) {
+		startTime := time.Now()
+		addr := ctx.RemoteAddr()
+
 		log := app.NewSessionLogger(zap.String("method", ctx.Method()), zap.String("path", ctx.Path()))
 		utils.Context.SaveLoggerToIrisContext(ctx, log)
 
-		startTime := time.Now()
+		body, _ := ctx.GetBody()
 
-		addr := ctx.RemoteAddr()
-		log.Debug(
-			"api.request",
-			zap.String("ip", addr),
-			zap.Strings("headers", valuesToTexts(ctx.Request().Header, ": ")),
-			zap.Strings("params", valuesToTexts(ctx.Request().URL.Query(), "=")),
-		)
+		if *isJson {
+			log.Debug(
+				"api.request",
+				zap.String("ip", addr),
+				zap.Strings("headers", valuesToTexts(ctx.Request().Header, ": ")),
+				zap.Strings("params", valuesToTexts(ctx.Request().URL.Query(), "=")),
+				zap.String("body", string(body)),
+			)
+		} else {
+			var infoBuff bytes.Buffer
+			infoBuff.WriteString("api.request\nheaders:\n")
+			for _, s := range valuesToTexts(ctx.Request().Header, ": ") {
+				infoBuff.WriteString("  ")
+				infoBuff.WriteString(s)
+				infoBuff.WriteByte('\n')
+			}
+			infoBuff.WriteString("\nparams:\n")
+			for _, s := range valuesToTexts(ctx.Request().URL.Query(), "=") {
+				infoBuff.WriteString("  ")
+				infoBuff.WriteString(s)
+				infoBuff.WriteByte('\n')
+			}
+			infoBuff.WriteString("\nbody:")
+			infoBuff.Write(body)
+			infoBuff.WriteByte('\n')
+			log.Debug(infoBuff.String(), zap.String("ip", addr))
+		}
 
 		ctx.Next()
 
