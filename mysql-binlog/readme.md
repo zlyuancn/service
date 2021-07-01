@@ -6,9 +6,8 @@
 # 说明
 
 ```text
-mysql_binlog.RegistryService()              # 注册服务
-mysql_binlog.WithMysqlBinlogService()       # 启用服务
-mysql_binlog.RegistryMysqlBinlogHandler(...)    # 服务注入(注册记录事件handler)
+mysql_binlog.WithService()          # 启用服务
+mysql_binlog.RegistryHandler(...)   # 服务注入(注册记录事件handler)
 ```
 
 # 示例
@@ -22,12 +21,10 @@ import (
 )
 
 func main() {
-    // 注册服务
-    mysql_binlog.RegistryService()
     // 启用服务
-    app := zapp.NewApp("test", mysql_binlog.WithMysqlBinlogService())
+    app := zapp.NewApp("test", mysql_binlog.WithService())
     // 服务注入
-    mysql_binlog.RegistryMysqlBinlogHandler(app, &mysql_binlog.BaseEventHandler{})
+    mysql_binlog.RegistryHandler(app, &mysql_binlog.BaseEventHandler{})
     // 运行
     app.Run()
 }

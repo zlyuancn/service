@@ -6,9 +6,8 @@
 # 说明
 
 ```text
-nsq_consume.RegistryService()               # 注册服务
-nsq_consume.WithNsqConsumeService()         # 启用服务
-nsq_consume.RegistryNsqConsumeHandler(...)      # 服务注入(注册消费处理handler)
+nsq_consume.WithService()           # 启用服务
+nsq_consume.RegistryHandler(...)    # 服务注入(注册消费处理handler)
 ```
 
 # 示例
@@ -22,12 +21,10 @@ import (
 )
 
 func main() {
-	// 注册nsq消费服务
-	nsq_consume.RegistryService()
 	// 启用nsq消费服务
-	app := zapp.NewApp("test", nsq_consume.WithNsqConsumeService())
+	app := zapp.NewApp("test", nsq_consume.WithService())
 	// 注册handler
-	nsq_consume.RegistryNsqConsumeHandler(app, "test", "c2", func(ctx *nsq_consume.Context) error {
+	nsq_consume.RegistryHandler(app, "test", "c2", func(ctx *nsq_consume.Context) error {
 		ctx.Info("数据", string(ctx.Body))
 		return nil
 	})

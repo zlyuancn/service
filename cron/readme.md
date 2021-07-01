@@ -6,11 +6,10 @@
 # 说明
 
 ```text
-cron.RegistryService()             # 注册服务
-cron.WithCronService()             # 启用服务
-cron.RegistryCronHandler(...)           # 服务注入(注册handler)
-cron.RegistryCronOnceHandler(...)       # 服务注入(注册一次性handler)
-cron.RegistryTask(...)                  # 服务注入(注册自定义task)
+cron.WithService()              # 启用服务
+cron.RegistryHandler(...)       # 注册handler
+cron.RegistryOnceHandler(...)   # 注册一次性handler
+cron.RegistryTask(...)          # 注册自定义task
 ```
 
 # 示例
@@ -23,12 +22,10 @@ import (
 )
 
 func main() {
-	// 注册cron服务
-	cron.RegistryService()
 	// 启用cron服务
-	app := zapp.NewApp("test", cron.WithCronService())
+	app := zapp.NewApp("test", cron.WithService())
 	// 注册handler
-	cron.RegistryCronHandler(app, "c1", "@every 1s", true, func(ctx cron.IContext) error {
+	cron.RegistryHandler(app, "c1", "@every 1s", true, func(ctx cron.IContext) error {
 		ctx.Info("触发")
 		return nil
 	})

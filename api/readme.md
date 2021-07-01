@@ -8,9 +8,8 @@
 > 此组件基于模块 [github.com/kataras/iris/v12](https://github.com/kataras/iris)
 
 ```text
-api.RegistryService()           # 注册服务
-api.WithApiService()            # 启用服务
-api.RegistryApiRouter(...)      # 服务注入(注册路由)
+api.WithApiService()        # 启用服务
+api.RegistryApiRouter(...)  # 服务注入(注册路由)
 ```
 
 # 示例
@@ -26,12 +25,10 @@ import (
 )
 
 func main() {
-	// 注册api服务
-	api.RegistryService()
 	// 启用api服务
-	app := zapp.NewApp("test", api.WithApiService())
+	app := zapp.NewApp("test", api.WithService())
 	// 注册路由
-	api.RegistryApiRouter(app, func(c core.IComponent, router api.Party) {
+	api.RegistryRouter(app, func(c core.IComponent, router api.Party) {
 		router.Get("/", api.Wrap(func(ctx *api.Context) interface{} {
 			return "hello"
 		}))

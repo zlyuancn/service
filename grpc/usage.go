@@ -20,24 +20,18 @@ const DefaultServiceType core.ServiceType = "grpc"
 // 当前服务类型
 var nowServiceType = DefaultServiceType
 
-// 注册服务
-func RegistryService(serviceType ...core.ServiceType) {
-	t := DefaultServiceType
-	if len(serviceType) > 0 {
-		t = serviceType[0]
+// 启用grpc服务
+func WithService(serviceType ...core.ServiceType) zapp.Option {
+	if len(serviceType) > 0 && serviceType[0] != "" {
+		nowServiceType = serviceType[0]
 	}
-	nowServiceType = t
-	service.RegisterCreatorFunc(t, func(app core.IApp, opts ...interface{}) core.IService {
+	service.RegisterCreatorFunc(nowServiceType, func(app core.IApp, opts ...interface{}) core.IService {
 		return NewGrpcService(app) // todo opts
 	})
-}
-
-// 启用grpc服务
-func WithGrpcService() zapp.Option {
 	return zapp.WithService(nowServiceType)
 }
 
 // 注册服务对象
-func RegistryGrpcServerObject(app core.IApp, fn RegistryGrpcServiceFunc) {
+func RegistryServerObject(app core.IApp, fn RegistryGrpcServiceFunc) {
 	app.InjectService(nowServiceType, fn)
 }

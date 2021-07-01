@@ -20,25 +20,19 @@ const DefaultServiceType core.ServiceType = "api"
 // 当前服务类型
 var nowServiceType = DefaultServiceType
 
-// 注册服务
-func RegistryService(serviceType ...core.ServiceType) {
-	t := DefaultServiceType
-	if len(serviceType) > 0 {
-		t = serviceType[0]
+// 启用app服务
+func WithService(serviceType ...core.ServiceType) zapp.Option {
+	if len(serviceType) > 0 && serviceType[0] != "" {
+		nowServiceType = serviceType[0]
 	}
-	nowServiceType = t
-	service.RegisterCreatorFunc(t, func(app core.IApp, opts ...interface{}) core.IService {
+	service.RegisterCreatorFunc(nowServiceType, func(app core.IApp, opts ...interface{}) core.IService {
 		return NewHttpService(app) // todo opts
 	})
-}
-
-// 启用app服务
-func WithApiService() zapp.Option {
 	return zapp.WithService(nowServiceType)
 }
 
 // 注册路由
-func RegistryApiRouter(app core.IApp, fn ...RegisterApiRouterFunc) {
+func RegistryRouter(app core.IApp, fn ...RegisterApiRouterFunc) {
 	a := make([]interface{}, len(fn))
 	for i, h := range fn {
 		a[i] = h

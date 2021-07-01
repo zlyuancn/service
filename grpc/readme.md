@@ -6,9 +6,8 @@
 # 说明
 
 ```text
-grpc.RegistryService()          # 注册服务
-grpc.WithGrpcService()          # 启用服务
-grpc.RegistryGrpcServerObject(...)    # 服务注入(注册服务实体)
+grpc.WithService()              # 启用服务
+grpc.RegistryServerObject(...)  # 服务注入(注册服务实体)
 ```
 
 # 示例
@@ -44,12 +43,10 @@ func (t *TestService) Test(ctx context.Context, req *pb.TestReq) (*pb.TestResp, 
 }
 
 func main() {
-    // 注册服务
-    grpc.RegistryService()
     // 启用服务
-    app := zapp.NewApp("test", grpc.WithGrpcService())
+    app := zapp.NewApp("test", grpc.WithService())
     // 服务注入
-    grpc.RegistryGrpcServerObject(app, NewTestService)
+    grpc.RegistryServerObject(app, NewTestService)
     // 启动
     app.Run()
 }
