@@ -29,6 +29,31 @@ import (
 // 返回其它值会经过处理后再返回给客户端
 type Handler = func(ctx *Context) interface{}
 
+// 写入响应函数
+type WriteResponseFunc func(ctx *Context, code int, message string, data interface{})
+
+// 设置写入响应函数
+func SetWriteResponseFunc(fn WriteResponseFunc) {
+	if fn == nil {
+		panic("WriteResponseFunc is nil")
+	}
+	defaultWriteResponseFunc = fn
+}
+
+// 默认写入响应函数
+var defaultWriteResponseFunc WriteResponseFunc = func(ctx *Context, code int, message string, data interface{}) {
+	switch v := data.(type) {
+	case []byte: // 直接写入
+		_, _ = ctx.Write(v)
+	default:
+		_, _ = ctx.JSON(Response{
+			ErrCode: code,
+			ErrMsg:  message,
+			Data:    data,
+		})
+	}
+}
+
 type Response struct {
 	ErrCode int         `json:"err_code"`
 	ErrMsg  string      `json:"err_msg"`
@@ -68,35 +93,25 @@ func wrap(handler interface{}, isMiddleware bool) iris.Handler {
 // 返回其它值会经过处理后再返回给客户端
 func WriteToCtx(ctx *Context, result interface{}) {
 	if err, ok := result.(error); ok {
-		ctx.Values().Set("error", err)
 		code, message := decodeErr(err)
-
-		isProduction := !app_config.Conf.Config().Frame.Debug
-		sendDetailedErrorInProduction := config.Conf.SendDetailedErrorInProduction
-		if !isProduction || sendDetailedErrorInProduction {
+		if app_config.Conf.Config().Frame.Debug || config.Conf.SendDetailedErrorInProduction {
 			message = err.Error()
 		}
-		_, _ = ctx.JSON(Response{
-			ErrCode: code,
-			ErrMsg:  message,
-		})
+		ctx.Values().Set("error", err)
+		defaultWriteResponseFunc(ctx, code, message, nil)
 		return
 	}
 
 	switch v := result.(type) {
-	case []byte: // 直接写入
+	case []byte:
 		ctx.Values().Set("result", fmt.Sprintf("bytes<len=%d>", len(v)))
-		_, _ = ctx.Write(v)
-	case *[]byte: // 直接写入
+		defaultWriteResponseFunc(ctx, OK.Code, OK.Message, v)
+	case *[]byte:
 		ctx.Values().Set("result", fmt.Sprintf("bytes<len=%d>", len(*v)))
-		_, _ = ctx.Write(*v)
+		defaultWriteResponseFunc(ctx, OK.Code, OK.Message, *v)
 	default:
 		ctx.Values().Set("result", result)
-		_, _ = ctx.JSON(Response{
-			ErrCode: OK.Code,
-			ErrMsg:  OK.Message,
-			Data:    result,
-		})
+		defaultWriteResponseFunc(ctx, OK.Code, OK.Message, result)
 	}
 }
 

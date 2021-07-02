@@ -93,11 +93,12 @@ func LoggerMiddleware(app core.IApp) iris.Handler {
 			}
 			fields = append(fields, zap.Error(err))
 			log.Error(fields...)
-		} else {
-			if *isDebug && *logResultInDevelop {
-				fields = append(fields, zap.Any("result", ctx.Values().Get("result")))
-			}
-			log.Debug(fields...)
+			return
 		}
+
+		if *isDebug && *logResultInDevelop {
+			fields = append(fields, zap.Any("result", ctx.Values().Get("result")))
+		}
+		log.Debug(fields...)
 	}
 }
