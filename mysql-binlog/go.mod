@@ -6,6 +6,6 @@ require (
 	github.com/go-mysql-org/go-mysql v1.3.0
 	github.com/json-iterator/go v1.1.11
 	github.com/twpayne/go-geom v1.4.0
-	github.com/zly-app/zapp v1.0.11
+	github.com/zly-app/zapp v1.0.12
 	go.uber.org/zap v1.16.0
 )
