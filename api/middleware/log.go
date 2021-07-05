@@ -12,10 +12,13 @@ import (
 	"bytes"
 	"fmt"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/kataras/iris/v12"
+	iris_context "github.com/kataras/iris/v12/context"
 	app_config "github.com/zly-app/zapp/config"
+	app_utils "github.com/zly-app/zapp/pkg/utils"
 	"go.uber.org/zap"
 
 	"github.com/zly-app/zapp/core"
@@ -36,69 +39,241 @@ func valuesToTexts(values map[string][]string, sep string) []string {
 }
 
 func LoggerMiddleware(app core.IApp) iris.Handler {
-	isDebug := &app_config.Conf.Config().Frame.Debug
-	logResultInDevelop := &config.Conf.LogApiResultInDevelop
-	isJson := &app_config.Conf.Config().Frame.Log.Json
+	if app_config.Conf.Config().Frame.Log.Json {
+		return loggerMiddlewareWithJson(app)
+	}
+	return loggerMiddleware(app)
+}
+
+// 以文本方式输出
+func loggerMiddleware(app core.IApp) iris.Handler {
+	isDebug := app_config.Conf.Config().Frame.Debug
 	return func(ctx iris.Context) {
 		startTime := time.Now()
 		addr := ctx.RemoteAddr()
 
-		log := app.NewSessionLogger(zap.String("method", ctx.Method()), zap.String("path", ctx.Path()))
+		// log
+		log := app.NewSessionLogger()
 		utils.Context.SaveLoggerToIrisContext(ctx, log)
 
-		body, _ := ctx.GetBody()
+		params := valuesToTexts(ctx.Request().URL.Query(), "=")
 
-		if *isJson {
-			log.Debug(
-				"api.request",
-				zap.String("ip", addr),
-				zap.Strings("headers", valuesToTexts(ctx.Request().Header, ": ")),
-				zap.Strings("params", valuesToTexts(ctx.Request().URL.Query(), "=")),
-				zap.String("body", string(body)),
-			)
-		} else {
-			var infoBuff bytes.Buffer
-			infoBuff.WriteString("api.request\nheaders:\n")
-			for _, s := range valuesToTexts(ctx.Request().Header, ": ") {
-				infoBuff.WriteString("  ")
-				infoBuff.WriteString(s)
-				infoBuff.WriteByte('\n')
-			}
-			infoBuff.WriteString("\nparams:\n")
-			for _, s := range valuesToTexts(ctx.Request().URL.Query(), "=") {
-				infoBuff.WriteString("  ")
-				infoBuff.WriteString(s)
-				infoBuff.WriteByte('\n')
-			}
-			infoBuff.WriteString("\nbody:")
-			infoBuff.Write(body)
-			infoBuff.WriteByte('\n')
-			log.Debug(infoBuff.String(), zap.String("ip", addr))
+		// request
+		var msgBuff bytes.Buffer
+		msgBuff.WriteString("api.request path: ")
+		msgBuff.WriteString(ctx.Method())
+		msgBuff.WriteByte(' ')
+		msgBuff.WriteString(ctx.Path())
+		msgBuff.WriteString("\nparams:\n")
+		for _, s := range params {
+			msgBuff.WriteString("  ")
+			msgBuff.WriteString(s)
+			msgBuff.WriteByte('\n')
 		}
+		msgBuff.WriteByte('\n')
+		log.Debug(msgBuff.String(), zap.String("ip", addr))
 
+		// handler
 		ctx.Next()
+
+		// response
+		msgBuff.Reset()
+		msgBuff.WriteString("api.request path: ")
+		msgBuff.WriteString(ctx.Method())
+		msgBuff.WriteByte(' ')
+		msgBuff.WriteString(ctx.Path())
+		msgBuff.WriteString("\nparams:\n")
+		for _, s := range params {
+			msgBuff.WriteString("  ")
+			msgBuff.WriteString(s)
+			msgBuff.WriteByte('\n')
+		}
+		msgBuff.WriteByte('\n')
 
 		latency := time.Since(startTime)
 		fields := []interface{}{
-			"api.response",
-			zap.String("query", ctx.Request().URL.RawQuery),
 			zap.String("ip", addr),
 			zap.String("latency_text", latency.String()),
 			zap.Duration("latency", latency),
 		}
 
-		if err, ok := ctx.Values().Get("error").(error); ok {
+		// error
+		err, hasErr := ctx.Values().Get("error").(error)
+		hasPanic, _ := ctx.Values().Get("panic").(bool)
+		if hasErr {
 			if err == nil {
 				err = fmt.Errorf("err{nil}")
 			}
+		}
+
+		// headers
+		if hasErr || config.Conf.AlwaysLogHeaders {
+			msgBuff.WriteString("headers:\n")
+			headers := valuesToTexts(ctx.Request().Header, ": ")
+			for _, s := range headers {
+				msgBuff.WriteString("  ")
+				msgBuff.WriteString(s)
+				msgBuff.WriteByte('\n')
+			}
+			msgBuff.WriteByte('\n')
+		}
+
+		// body
+		if hasErr || config.Conf.AlwaysLogBody {
+			body, _ := ctx.GetBody()
+			msgBuff.WriteString("body:")
+			msgBuff.Write(body)
+			msgBuff.WriteString("\n\n")
+		}
+
+		// result
+		if !hasErr {
+			if isDebug && config.Conf.LogApiResultInDevelop {
+				msgBuff.WriteString("result: ")
+				result, _ := ctx.Values().Get("result").(string)
+				msgBuff.WriteString(result)
+				msgBuff.WriteString("\n\n")
+			}
+			log.Debug(append([]interface{}{msgBuff.String()}, fields...)...)
+			return
+		}
+
+		// error
+		if !hasPanic {
+			msgBuff.WriteString("err: ")
+			msgBuff.WriteString(err.Error())
+			msgBuff.WriteString("\n\n")
+			log.Error(append([]interface{}{msgBuff.String()}, fields...)...)
+			return
+		}
+
+		// panic
+		handlerName := ctx.Values().GetStringDefault("_handler_name", ctx.HandlerName())
+		panicErrDetail := app_utils.Recover.GetRecoverErrorDetail(err)
+		panicErrInfos := strings.Split(panicErrDetail, "\n")
+
+		msgBuff.WriteString("panic:\n")
+		msgBuff.WriteString("  Recovered from a route's Handler: ")
+		msgBuff.WriteString(handlerName)
+		msgBuff.WriteString("  ")
+		msgBuff.WriteString(strings.Join(panicErrInfos, "\n  "))
+		msgBuff.WriteString("\n\n")
+		log.Error(append([]interface{}{msgBuff.String()}, fields...)...)
+
+		// send_error_result
+		result := map[string]interface{}{
+			"err_code": 1,
+			"err_msg":  "service internal error",
+		}
+		if isDebug || config.Conf.SendDetailedErrorInProduction {
+			result["err_msg"] = append(
+				[]string{fmt.Sprintf("Recovered from a route's Handler: %s", handlerName)},
+				panicErrInfos...,
+			)
+		}
+		_, _ = ctx.JSON(result)
+		ctx.StopExecution()
+	}
+}
+
+// 以json方式输出
+func loggerMiddlewareWithJson(app core.IApp) iris.Handler {
+	isDebug := app_config.Conf.Config().Frame.Debug
+	return func(ctx *iris_context.Context) {
+		startTime := time.Now()
+		addr := ctx.RemoteAddr()
+
+		// log
+		log := app.NewSessionLogger()
+		utils.Context.SaveLoggerToIrisContext(ctx, log)
+
+		params := valuesToTexts(ctx.Request().URL.Query(), "=")
+
+		// request
+		log.Debug(
+			"api.request",
+			zap.String("method", ctx.Method()),
+			zap.String("path", ctx.Path()),
+			zap.Strings("params", params),
+			zap.String("ip", addr),
+		)
+
+		// handler
+		ctx.Next()
+
+		// response
+		latency := time.Since(startTime)
+		fields := []interface{}{
+			"api.response",
+			zap.String("method", ctx.Method()),
+			zap.Strings("params", params),
+			zap.String("path", ctx.Path()),
+			zap.String("ip", addr),
+			zap.String("latency_text", latency.String()),
+			zap.Duration("latency", latency),
+		}
+
+		// error
+		err, hasErr := ctx.Values().Get("error").(error)
+		hasPanic, _ := ctx.Values().Get("panic").(bool)
+		if hasErr {
+			if err == nil {
+				err = fmt.Errorf("err{nil}")
+			}
+		}
+
+		// headers
+		if hasErr || config.Conf.AlwaysLogHeaders {
+			headers := valuesToTexts(ctx.Request().Header, ": ")
+			fields = append(fields, zap.Strings("headers", headers))
+		}
+
+		// body
+		if hasErr || config.Conf.AlwaysLogBody {
+			body, _ := ctx.GetBody()
+			fields = append(fields, zap.String("body", string(body)))
+		}
+
+		// result
+		if !hasErr {
+			if isDebug && config.Conf.LogApiResultInDevelop {
+				fields = append(fields, zap.Any("result", ctx.Values().Get("result")))
+			}
+			log.Debug(fields...)
+			return
+		}
+
+		// error
+		if !hasPanic {
 			fields = append(fields, zap.Error(err))
 			log.Error(fields...)
 			return
 		}
 
-		if *isDebug && *logResultInDevelop {
-			fields = append(fields, zap.Any("result", ctx.Values().Get("result")))
+		// panic
+		handlerName := ctx.Values().GetStringDefault("_handler_name", ctx.HandlerName())
+		panicErrDetail := app_utils.Recover.GetRecoverErrorDetail(err)
+		panicErrInfos := strings.Split(panicErrDetail, "\n")
+		fields = append(fields,
+			zap.Bool("panic", true),
+			zap.String("handler_name", handlerName),
+			zap.String("error", panicErrInfos[0]),
+			zap.Strings("detail", panicErrInfos[1:]),
+		)
+		log.Error(fields...)
+
+		// send_error_result
+		result := map[string]interface{}{
+			"err_code": 1,
+			"err_msg":  "service internal error",
 		}
-		log.Debug(fields...)
+		if isDebug || config.Conf.SendDetailedErrorInProduction {
+			result["err_msg"] = append(
+				[]string{fmt.Sprintf("Recovered from a route's Handler: %s", handlerName)},
+				panicErrInfos...,
+			)
+		}
+		_, _ = ctx.JSON(result)
+		ctx.StopExecution()
 	}
 }
