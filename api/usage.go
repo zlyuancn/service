@@ -26,7 +26,7 @@ func WithService(serviceType ...core.ServiceType) zapp.Option {
 		nowServiceType = serviceType[0]
 	}
 	service.RegisterCreatorFunc(nowServiceType, func(app core.IApp, opts ...interface{}) core.IService {
-		return NewHttpService(app) // todo opts
+		return NewHttpService(app, opts...)
 	})
 	return zapp.WithService(nowServiceType)
 }

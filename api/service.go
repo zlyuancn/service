@@ -30,7 +30,7 @@ type ApiService struct {
 	*iris.Application
 }
 
-func NewHttpService(app core.IApp) core.IService {
+func NewHttpService(app core.IApp, opts ...interface{}) core.IService {
 	irisApp := iris.New()
 	irisApp.Logger().SetLevel("disable")
 	irisApp.Use(
@@ -39,6 +39,14 @@ func NewHttpService(app core.IApp) core.IService {
 		middleware.Recover(),
 	)
 	irisApp.AllowMethods(iris.MethodOptions)
+
+	// 处理选项
+	option := newOptions(opts...)
+
+	// 中间件
+	for _, fn := range option.Middlewares {
+		irisApp.Use(WrapMiddleware(fn))
+	}
 
 	return &ApiService{app: app, Application: irisApp}
 }
