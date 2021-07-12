@@ -31,8 +31,12 @@ type ApiService struct {
 }
 
 func NewHttpService(app core.IApp, opts ...interface{}) core.IService {
+	// 处理选项
+	o := newOptions(opts...)
+
+	// irisApp
 	irisApp := iris.New()
-	irisApp.Logger().SetLevel("disable")
+	irisApp.Logger().SetLevel("disable") // 关闭默认日志
 	irisApp.Use(
 		middleware.LoggerMiddleware(app),
 		cors.AllowAll(),
@@ -40,11 +44,8 @@ func NewHttpService(app core.IApp, opts ...interface{}) core.IService {
 	)
 	irisApp.AllowMethods(iris.MethodOptions)
 
-	// 处理选项
-	option := newOptions(opts...)
-
 	// 中间件
-	for _, fn := range option.Middlewares {
+	for _, fn := range o.Middlewares {
 		irisApp.Use(WrapMiddleware(fn))
 	}
 

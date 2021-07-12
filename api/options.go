@@ -10,12 +10,10 @@ type options struct {
 	Middlewares []interface{} // 中间件, 需要Wrap函数包装后才能用
 }
 
-type Option func(opts *options)
+type Option func(o *options)
 
 func newOptions(opts ...interface{}) *options {
-	o := &options{
-
-	}
+	o := &options{}
 	for _, opt := range opts {
 		fn, ok := opt.(Option)
 		if !ok {
@@ -28,7 +26,7 @@ func newOptions(opts ...interface{}) *options {
 
 // 添加全局中间件
 func WithMiddleware(fn interface{}) Option {
-	return func(opts *options) {
-		opts.Middlewares = append(opts.Middlewares, fn)
+	return func(o *options) {
+		o.Middlewares = append(o.Middlewares, fn)
 	}
 }
