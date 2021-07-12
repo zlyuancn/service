@@ -61,6 +61,7 @@ func loggerMiddleware(app core.IApp) iris.Handler {
 		// 链路追踪
 		span := opentracing.StartSpan("api")
 		defer span.Finish()
+		utils.Context.SaveOpenTraceSpanToIrisContext(ctx, span)
 
 		params := valuesToTexts(ctx.Request().URL.Query(), "=")
 

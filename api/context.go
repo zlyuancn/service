@@ -13,6 +13,7 @@ import (
 
 	"github.com/kataras/iris/v12"
 	iris_context "github.com/kataras/iris/v12/context"
+	"github.com/opentracing/opentracing-go"
 	"go.uber.org/zap"
 
 	"github.com/zly-app/zapp/core"
@@ -22,14 +23,16 @@ import (
 )
 
 type Context struct {
+	*iris_context.Context // 原始 iris.Context
 	core.ILogger
-	*iris_context.Context
+	OpenTraceSpan opentracing.Span // 链路追踪跨度
 }
 
 func makeContext(ctx iris.Context) *Context {
 	return &Context{
-		ILogger: utils.Context.MustGetLoggerFromIrisContext(ctx),
-		Context: ctx,
+		Context:       ctx,
+		ILogger:       utils.Context.MustGetLoggerFromIrisContext(ctx),
+		OpenTraceSpan: utils.Context.MustGetOpenTraceSpanFromIrisContext(ctx),
 	}
 }
 
