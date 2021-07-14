@@ -20,12 +20,14 @@ const DefaultServiceType core.ServiceType = "api"
 // 当前服务类型
 var nowServiceType = DefaultServiceType
 
+// 设置服务类型, 这个函数应该在 zapp.NewApp 之前调用
+func SetServiceType(t core.ServiceType) {
+	nowServiceType = t
+}
+
 // 启用app服务
-func WithService(serviceType ...core.ServiceType) zapp.Option {
-	if len(serviceType) > 0 && serviceType[0] != "" {
-		nowServiceType = serviceType[0]
-	}
-	service.RegisterCreatorFunc(nowServiceType, func(app core.IApp, opts ...interface{}) core.IService {
+func WithService(opts ...Option) zapp.Option {
+	service.RegisterCreatorFunc(nowServiceType, func(app core.IApp) core.IService {
 		return NewHttpService(app, opts...)
 	})
 	return zapp.WithService(nowServiceType)

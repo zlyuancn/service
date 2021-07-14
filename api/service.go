@@ -30,7 +30,7 @@ type ApiService struct {
 	*iris.Application
 }
 
-func NewHttpService(app core.IApp, opts ...interface{}) core.IService {
+func NewHttpService(app core.IApp, opts ...Option) core.IService {
 	// 处理选项
 	o := newOptions(opts...)
 
