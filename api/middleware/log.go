@@ -50,7 +50,6 @@ func LoggerMiddleware(app core.IApp) iris.Handler {
 func loggerMiddleware(app core.IApp) iris.Handler {
 	isDebug := app_config.Conf.Config().Frame.Debug
 	return func(ctx iris.Context) {
-		handlerName := ctx.Values().GetStringDefault("_handler_name", ctx.HandlerName())
 		startTime := time.Now()
 		addr := ctx.RemoteAddr()
 
@@ -68,7 +67,7 @@ func loggerMiddleware(app core.IApp) iris.Handler {
 		// request
 		span.SetTag("method", ctx.Method())
 		span.SetTag("path", ctx.Path())
-		span.SetTag("params", params)
+		span.SetTag("params", strings.Join(params, "\n"))
 		span.SetTag("ip", ctx.RemoteAddr())
 		var msgBuff bytes.Buffer
 		msgBuff.WriteString("api.request path: ")
@@ -120,7 +119,7 @@ func loggerMiddleware(app core.IApp) iris.Handler {
 		// headers
 		if hasErr || config.Conf.AlwaysLogHeaders {
 			headers := valuesToTexts(ctx.Request().Header, ": ")
-			span.SetTag("headers", headers)
+			span.SetTag("headers", strings.Join(headers, "\n"))
 			msgBuff.WriteString("headers:\n")
 			for _, s := range headers {
 				msgBuff.WriteString("  ")
@@ -163,6 +162,7 @@ func loggerMiddleware(app core.IApp) iris.Handler {
 			return
 		}
 
+		handlerName := ctx.Values().GetStringDefault("_handler_name", ctx.HandlerName())
 		// panic
 		panicErrDetail := app_utils.Recover.GetRecoverErrorDetail(err)
 		panicErrInfos := strings.Split(panicErrDetail, "\n")
@@ -170,7 +170,7 @@ func loggerMiddleware(app core.IApp) iris.Handler {
 		span.SetTag("panic", true)
 		span.SetTag("handler_name", handlerName)
 		span.SetTag("err", panicErrInfos[0])
-		span.SetTag("detail", panicErrInfos[1:])
+		span.SetTag("detail", strings.Join(panicErrInfos[1:], "\n"))
 
 		msgBuff.WriteString("panic:\n")
 		msgBuff.WriteString("  Recovered from a route's Handler: ")
@@ -200,7 +200,6 @@ func loggerMiddleware(app core.IApp) iris.Handler {
 func loggerMiddlewareWithJson(app core.IApp) iris.Handler {
 	isDebug := app_config.Conf.Config().Frame.Debug
 	return func(ctx *iris_context.Context) {
-		handlerName := ctx.Values().GetStringDefault("_handler_name", ctx.HandlerName())
 		startTime := time.Now()
 		addr := ctx.RemoteAddr()
 
@@ -211,13 +210,14 @@ func loggerMiddlewareWithJson(app core.IApp) iris.Handler {
 		// 链路追踪
 		span := opentracing.StartSpan("api")
 		defer span.Finish()
+		utils.Context.SaveOpenTraceSpanToIrisContext(ctx, span)
 
 		params := valuesToTexts(ctx.Request().URL.Query(), "=")
 
 		// request
 		span.SetTag("method", ctx.Method())
 		span.SetTag("path", ctx.Path())
-		span.SetTag("params", params)
+		span.SetTag("params", strings.Join(params, "\n"))
 		span.SetTag("ip", ctx.RemoteAddr())
 		log.Debug(
 			"api.request",
@@ -254,7 +254,7 @@ func loggerMiddlewareWithJson(app core.IApp) iris.Handler {
 		// headers
 		if hasErr || config.Conf.AlwaysLogHeaders {
 			headers := valuesToTexts(ctx.Request().Header, ": ")
-			span.SetTag("headers", headers)
+			span.SetTag("headers", strings.Join(headers, "\n"))
 			fields = append(fields, zap.Strings("headers", headers))
 		}
 
@@ -286,6 +286,7 @@ func loggerMiddlewareWithJson(app core.IApp) iris.Handler {
 			return
 		}
 
+		handlerName := ctx.Values().GetStringDefault("_handler_name", ctx.HandlerName())
 		// panic
 		panicErrDetail := app_utils.Recover.GetRecoverErrorDetail(err)
 		panicErrInfos := strings.Split(panicErrDetail, "\n")
@@ -293,7 +294,7 @@ func loggerMiddlewareWithJson(app core.IApp) iris.Handler {
 		span.SetTag("panic", true)
 		span.SetTag("handler_name", handlerName)
 		span.SetTag("err", panicErrInfos[0])
-		span.SetTag("detail", panicErrInfos[1:])
+		span.SetTag("detail", strings.Join(panicErrInfos[1:], "\n"))
 		fields = append(fields,
 			zap.Bool("panic", true),
 			zap.String("handler_name", handlerName),
