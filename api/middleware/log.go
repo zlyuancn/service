@@ -102,8 +102,6 @@ func loggerMiddleware(app core.IApp) iris.Handler {
 		msgBuff.WriteByte('\n')
 
 		latency := time.Since(startTime)
-		span.SetTag("latency_text", latency.String())
-		span.SetTag("latency", latency)
 		fields := []interface{}{
 			zap.String("ip", addr),
 			zap.String("latency_text", latency.String()),
@@ -234,8 +232,6 @@ func loggerMiddlewareWithJson(app core.IApp) iris.Handler {
 
 		// response
 		latency := time.Since(startTime)
-		span.SetTag("latency_text", latency.String())
-		span.SetTag("latency", latency)
 		fields := []interface{}{
 			"api.response",
 			zap.String("method", ctx.Method()),
@@ -285,7 +281,7 @@ func loggerMiddlewareWithJson(app core.IApp) iris.Handler {
 		if !hasPanic {
 			span.SetTag("error", true)
 			span.SetTag("err", err.Error())
-			fields = append(fields, zap.Error(err))
+			fields = append(fields, zap.String("err", err.Error()))
 			log.Error(fields...)
 			return
 		}
@@ -301,7 +297,7 @@ func loggerMiddlewareWithJson(app core.IApp) iris.Handler {
 		fields = append(fields,
 			zap.Bool("panic", true),
 			zap.String("handler_name", handlerName),
-			zap.String("error", panicErrInfos[0]),
+			zap.String("err", panicErrInfos[0]),
 			zap.Strings("detail", panicErrInfos[1:]),
 		)
 		log.Error(fields...)
