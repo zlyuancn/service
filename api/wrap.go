@@ -118,15 +118,15 @@ func WriteToCtx(ctx *Context, result interface{}) {
 // 包装处理程序
 //
 // handler 是一个 func
-//      入参: 第一个入参必须是 *api.Context 类型, 如果有第二个入参必须是 struct, 第二个入参可以是指针
+//      入参: 第一个入参必须是 *api.Context 类型, 如果有第二个入参必须是 struct, 第二个入参可以是指针, 第二个入参会自动bind
 //      出参: 第一个出参可以是任何类型, 如果有第二个出参必须是error类型
 //      示例:
 //          func (ctx *api.Context) interface{}
 //          func (ctx *api.Context) error
-//          func (ctx *api.Context, req *ReqStruct) interface{}
-//          func (ctx *api.Context, req *ReqStruct) error
-//          func (ctx *api.Context, req *ReqStruct) (interface{}, error)
-//          func (ctx *api.Context, req *ReqStruct) (*OutStruct, error)
+//          func (ctx *api.Context, req *AnyReqStruct) interface{}
+//          func (ctx *api.Context, req *AnyReqStruct) error
+//          func (ctx *api.Context, req *AnyReqStruct) (interface{}, error)
+//          func (ctx *api.Context, req *AnyReqStruct) (*AnyOutStruct, error)
 func Wrap(handler interface{}) iris.Handler {
 	return wrap(handler, false)
 }
