@@ -26,8 +26,8 @@ func WithService() zapp.Option {
 }
 
 // 注册handler
-func RegistryHandler(app core.IApp, topics []string, groupID string, handler RegistryKafkaConsumerHandlerFunc, opts ...ConsumerOption) {
-	app.InjectService(nowServiceType, &ConsumerConfig{
+func RegistryHandler(topics []string, groupID string, handler RegistryKafkaConsumerHandlerFunc, opts ...ConsumerOption) {
+	zapp.App().InjectService(nowServiceType, &ConsumerConfig{
 		Topics:  topics,
 		GroupID: groupID,
 		Handler: handler,

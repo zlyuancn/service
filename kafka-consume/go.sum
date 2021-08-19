@@ -240,8 +240,8 @@ github.com/vmihailenco/tagparser v0.1.2/go.mod h1:OeAg3pn3UbLjkWt+rN9oFYB6u/cQgq
 github.com/xdg/scram v1.0.3/go.mod h1:lB8K/P019DLNhemzwFU4jHLhdvlE6uDZjXFejJXr49I=
 github.com/xdg/stringprep v1.0.3/go.mod h1:Jhud4/sHMO4oL310DaZAKk9ZaJ08SJfe+sJh0HrGL1Y=
 github.com/xiang90/probing v0.0.0-20190116061207-43a291ad63a2/go.mod h1:UETIi67q53MR2AWcXfiuqkDkRtnGDLqkBTpCHuJHxtU=
-github.com/zly-app/zapp v1.1.0 h1:WSjZRobXWGwbBFih92smGT1I/lhjqaxrFMD0CDGCNCw=
-github.com/zly-app/zapp v1.1.0/go.mod h1:Z5V+S/+OakHkuPKzwbU5zf5Om2Ryh2TCG2eKb1U2VTk=
+github.com/zly-app/zapp v1.1.1 h1:QEOX6dwfrcIsnSp5Dwsif6nMzwGcQyr/yogxByZf3xI=
+github.com/zly-app/zapp v1.1.1/go.mod h1:Z5V+S/+OakHkuPKzwbU5zf5Om2Ryh2TCG2eKb1U2VTk=
 github.com/zlyuancn/zutils v0.0.0-20210818071406-950ed323e3a0 h1:wpijOie2nAJsSBmxw9x052g/zWpwzS0bipzh5E/RFd0=
 github.com/zlyuancn/zutils v0.0.0-20210818071406-950ed323e3a0/go.mod h1:LLchQAzsmPgVT/pmMtaow4Bp3hJ5N7fP0SvMkNrNUx0=
 go.etcd.io/bbolt v1.3.2/go.mod h1:IbVyRI1SCnLcuJnV2u8VeU0CEYM7e686BmAb1XKL+uU=

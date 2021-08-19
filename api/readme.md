@@ -24,7 +24,6 @@ package main
 
 import (
 	"github.com/zly-app/service/api"
-
 	"github.com/zly-app/zapp"
 	"github.com/zly-app/zapp/core"
 )
@@ -33,7 +32,7 @@ func main() {
 	// 启用api服务
 	app := zapp.NewApp("test", api.WithService())
 	// 注册路由
-	api.RegistryRouter(app, func(c core.IComponent, router api.Party) {
+	api.RegistryRouter(func(c core.IComponent, router api.Party) {
 		router.Get("/", api.Wrap(func(ctx *api.Context) interface{} {
 			return "hello"
 		}))

@@ -16,17 +16,14 @@
 ```go
 app := zapp.NewApp("test",
     api.WithService(), // 启用api服务
-    // ... 启用其它服务, 一般为 service.WithService()
 )
 
 // 注册路由
-api.RegistryRouter(app, func(c core.IComponent, router api.Party) {
+api.RegistryRouter(func(c core.IComponent, router api.Party) {
     router.Get("/", api.Wrap(func(ctx *api.Context) interface{} {
         return "hello"
     }))
 })
-
-// ... 其它服务的注入, 一般为 service.RegistryXXX(...)
 
 // 运行
 app.Run()

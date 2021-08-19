@@ -23,7 +23,7 @@ func main() {
 	// 启用kafka消费服务
 	app := zapp.NewApp("test", kafka_consume.WithService())
 	// 注册handler
-	kafka_consume.RegistryHandler(app, []string{"test"}, "g3", func(ctx *kafka_consume.Context) error {
+	kafka_consume.RegistryHandler([]string{"test"}, "g3", func(ctx *kafka_consume.Context) error {
 		ctx.Info("数据", string(ctx.Value))
 		return nil
 	})

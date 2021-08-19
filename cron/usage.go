@@ -36,28 +36,28 @@ func WithService() zapp.Option {
 }
 
 // 注册cron的Handler
-func RegistryHandler(app core.IApp, name string, expression string, enable bool, handler Handler) {
+func RegistryHandler(name string, expression string, enable bool, handler Handler) {
 	task := NewTaskOfConfig(name, TaskConfig{
 		Trigger:  NewCronTrigger(expression),
 		Executor: NewExecutor(0, 0, 1),
 		Handler:  handler,
 		Enable:   enable,
 	})
-	app.InjectService(nowServiceType, task)
+	zapp.App().InjectService(nowServiceType, task)
 }
 
 // 注册一次性cron的Handler
-func RegistryOnceHandler(app core.IApp, name string, t time.Time, enable bool, handler Handler) {
+func RegistryOnceHandler(name string, t time.Time, enable bool, handler Handler) {
 	task := NewTaskOfConfig(name, TaskConfig{
 		Trigger:  NewOnceTrigger(t),
 		Executor: NewExecutor(0, 0, 1),
 		Handler:  handler,
 		Enable:   enable,
 	})
-	app.InjectService(nowServiceType, task)
+	zapp.App().InjectService(nowServiceType, task)
 }
 
 // 注册自定义task
-func RegistryTask(app core.IApp, task ITask) {
-	app.InjectService(nowServiceType, task)
+func RegistryTask(task ITask) {
+	zapp.App().InjectService(nowServiceType, task)
 }

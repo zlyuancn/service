@@ -34,8 +34,8 @@ func WithService() zapp.Option {
 }
 
 // 注册handler
-func RegistryHandler(app core.IApp, topic, channel string, handler RegistryNsqConsumerHandlerFunc, opts ...ConsumerOption) {
-	app.InjectService(nowServiceType, &ConsumerConfig{
+func RegistryHandler(topic, channel string, handler RegistryNsqConsumerHandlerFunc, opts ...ConsumerOption) {
+	zapp.App().InjectService(nowServiceType, &ConsumerConfig{
 		Topic:   topic,
 		Channel: channel,
 		Handler: handler,

@@ -24,7 +24,7 @@ func main() {
 	// 启用nsq消费服务
 	app := zapp.NewApp("test", nsq_consume.WithService())
 	// 注册handler
-	nsq_consume.RegistryHandler(app, "test", "c2", func(ctx *nsq_consume.Context) error {
+	nsq_consume.RegistryHandler("test", "c2", func(ctx *nsq_consume.Context) error {
 		ctx.Info("数据", string(ctx.Body))
 		return nil
 	})

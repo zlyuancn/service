@@ -46,7 +46,7 @@ func main() {
     // 启用服务
     app := zapp.NewApp("test", grpc.WithService())
     // 服务注入
-    grpc.RegistryServerObject(app, NewTestService)
+    grpc.RegistryServerObject(NewTestService)
     // 启动
     app.Run()
 }

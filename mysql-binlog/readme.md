@@ -24,7 +24,7 @@ func main() {
     // 启用服务
     app := zapp.NewApp("test", mysql_binlog.WithService())
     // 服务注入
-    mysql_binlog.RegistryHandler(app, &mysql_binlog.BaseEventHandler{})
+    mysql_binlog.RegistryHandler(&mysql_binlog.BaseEventHandler{})
     // 运行
     app.Run()
 }

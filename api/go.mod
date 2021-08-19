@@ -13,6 +13,6 @@ require (
 	github.com/opentracing/opentracing-go v1.2.0
 	github.com/vmihailenco/msgpack/v5 v5.1.4 // indirect
 	github.com/yudai/pp v2.0.1+incompatible // indirect
-	github.com/zly-app/zapp v1.0.13
+	github.com/zly-app/zapp v1.1.1
 	go.uber.org/zap v1.16.0
 )

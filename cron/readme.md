@@ -25,7 +25,7 @@ func main() {
 	// 启用cron服务
 	app := zapp.NewApp("test", cron.WithService())
 	// 注册handler
-	cron.RegistryHandler(app, "c1", "@every 1s", true, func(ctx cron.IContext) error {
+	cron.RegistryHandler("c1", "@every 1s", true, func(ctx cron.IContext) error {
 		ctx.Info("触发")
 		return nil
 	})
