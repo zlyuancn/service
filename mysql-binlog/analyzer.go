@@ -9,6 +9,7 @@
 package mysql_binlog
 
 import (
+	"encoding/base64"
 	"errors"
 	"fmt"
 
@@ -16,6 +17,7 @@ import (
 	"github.com/go-mysql-org/go-mysql/schema"
 	"github.com/twpayne/go-geom/encoding/geojson"
 	"github.com/twpayne/go-geom/encoding/wkb"
+	"github.com/zlyuancn/zstr"
 	"go.uber.org/zap"
 
 	"github.com/zly-app/zapp/core"
@@ -144,7 +146,7 @@ func (a *analyzer) parseLine(table *schema.Table, row []interface{}) (out map[st
 //      YEAR: int
 //      DATETIME: string
 //      TIMESTAMP: string
-// 字节串: string
+// 字节串: base64string
 //      BINARY, VARBINARY
 // 其它:
 //      JSON: string
@@ -152,7 +154,7 @@ func (a *analyzer) parseLine(table *schema.Table, row []interface{}) (out map[st
 //      SET: int64
 //      BIT: int64
 //      POINT: []float64{x, y}
-//      GEOMETRY: []byte geojson
+//      GEOMETRY: string geojson
 func (a *analyzer) parseValue(t int, rawType string, v interface{}) (interface{}, error) {
 	if v == nil {
 		return nil, nil
@@ -169,9 +171,9 @@ func (a *analyzer) parseValue(t int, rawType string, v interface{}) (interface{}
 					a.app.Warn("parse geometry data error", zap.Error(err))
 					return []byte{}, nil
 				}
-				return p, err
+				return *zstr.BytesToString(p), err
 			}
-			return string(raw), nil
+			return *zstr.BytesToString(raw), nil
 		}
 	case schema.TYPE_POINT:
 		switch raw := v.(type) {
@@ -183,6 +185,14 @@ func (a *analyzer) parseValue(t int, rawType string, v interface{}) (interface{}
 			}
 			return p, err
 		}
+	case schema.TYPE_BINARY:
+		src, ok := v.(string)
+		if !ok {
+			return nil, fmt.Errorf("binary data error, %T can't convert to string", v)
+		}
+		buf := make([]byte, base64.StdEncoding.EncodedLen(len(src)))
+		base64.StdEncoding.Encode(buf, zstr.StringToBytes(&src))
+		return *zstr.BytesToString(buf), nil
 	}
 	return v, nil
 }
