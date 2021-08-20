@@ -23,19 +23,19 @@ type Record struct {
 
 // 获取old数据的json输出
 func (r *Record) OldString() string {
-	text, _ := jsoniter.MarshalToString(r.Old)
+	text, _ := jsoniter.ConfigCompatibleWithStandardLibrary.MarshalToString(r.Old)
 	return text
 }
 
 // 获取new数据的json输出
 func (r *Record) NewString() string {
-	text, _ := jsoniter.MarshalToString(r.New)
+	text, _ := jsoniter.ConfigCompatibleWithStandardLibrary.MarshalToString(r.New)
 	return text
 }
 
 // 将record的所有数据转为json
 func (r *Record) String() string {
-	text, _ := jsoniter.MarshalToString(r)
+	text, _ := jsoniter.ConfigCompatibleWithStandardLibrary.MarshalToString(r)
 	return text
 }
 

@@ -258,6 +258,8 @@ github.com/xiang90/probing v0.0.0-20190116061207-43a291ad63a2/go.mod h1:UETIi67q
 github.com/yuin/goldmark v1.2.1/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=
 github.com/zly-app/zapp v1.1.1 h1:QEOX6dwfrcIsnSp5Dwsif6nMzwGcQyr/yogxByZf3xI=
 github.com/zly-app/zapp v1.1.1/go.mod h1:Z5V+S/+OakHkuPKzwbU5zf5Om2Ryh2TCG2eKb1U2VTk=
+github.com/zlyuancn/zstr v0.0.0-20210820024718-ae79a4fc86c3 h1:nSBWQ7kneAk8jTD98s8/oH+an+W1e1iTR97BxW6dlPo=
+github.com/zlyuancn/zstr v0.0.0-20210820024718-ae79a4fc86c3/go.mod h1:gcWCwemINH4jJeg+sXWMf45IAWc/fSn4rZ38eW2zqI8=
 go.etcd.io/bbolt v1.3.2/go.mod h1:IbVyRI1SCnLcuJnV2u8VeU0CEYM7e686BmAb1XKL+uU=
 go.opencensus.io v0.21.0/go.mod h1:mSImk1erAIZhrmZN+AvHh14ztQfjbGwt4TtuofqLduU=
 go.opencensus.io v0.22.0/go.mod h1:+kGneAE2xo2IficOXnaByMWTGM9T73dGwxeWcUqIpI8=
