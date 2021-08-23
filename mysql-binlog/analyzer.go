@@ -169,7 +169,7 @@ func (a *analyzer) parseValue(t int, rawType string, v interface{}) (interface{}
 				p, err := a.parseWKB(raw)
 				if err != nil && a.IgnoreWKBDataParseError {
 					a.app.Warn("parse geometry data error", zap.Error(err))
-					return []byte{}, nil
+					return "", nil
 				}
 				return *zstr.BytesToString(p), err
 			}
