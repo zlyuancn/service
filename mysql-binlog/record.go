@@ -39,29 +39,12 @@ func (r *Record) String() string {
 	return text
 }
 
-// 将record的所有数据解析到a
-func (r *Record) Unmarshal(a interface{}) error {
-	bs, err := jsoniter.Marshal(r)
-	if err != nil {
-		return err
-	}
-	return jsoniter.Unmarshal(bs, a)
-}
-
 // 将old数据解析到a
 func (r *Record) UnmarshalOld(a interface{}) error {
-	bs, err := jsoniter.Marshal(r.Old)
-	if err != nil {
-		return err
-	}
-	return jsoniter.Unmarshal(bs, a)
+	return ScanMysqlData(r.Old, a)
 }
 
 // 将new数据解析到a
 func (r *Record) UnmarshalNew(a interface{}) error {
-	bs, err := jsoniter.Marshal(r.New)
-	if err != nil {
-		return err
-	}
-	return jsoniter.Unmarshal(bs, a)
+	return ScanMysqlData(r.New, a)
 }
