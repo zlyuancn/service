@@ -51,7 +51,7 @@ func loggerMiddleware(app core.IApp) iris.Handler {
 	isDebug := app_config.Conf.Config().Frame.Debug
 	return func(ctx iris.Context) {
 		startTime := time.Now()
-		addr := ctx.RemoteAddr()
+		ip := utils.Context.GetRemoteIP(ctx)
 
 		// log
 		log := app.NewSessionLogger()
@@ -81,7 +81,7 @@ func loggerMiddleware(app core.IApp) iris.Handler {
 			msgBuff.WriteByte('\n')
 		}
 		msgBuff.WriteByte('\n')
-		log.Debug(msgBuff.String(), zap.String("ip", addr))
+		log.Debug(msgBuff.String(), zap.String("ip", ip))
 
 		// handler
 		ctx.Next()
@@ -102,7 +102,7 @@ func loggerMiddleware(app core.IApp) iris.Handler {
 
 		latency := time.Since(startTime)
 		fields := []interface{}{
-			zap.String("ip", addr),
+			zap.String("ip", ip),
 			zap.String("latency_text", latency.String()),
 			zap.Duration("latency", latency),
 		}
@@ -201,7 +201,7 @@ func loggerMiddlewareWithJson(app core.IApp) iris.Handler {
 	isDebug := app_config.Conf.Config().Frame.Debug
 	return func(ctx *iris_context.Context) {
 		startTime := time.Now()
-		addr := ctx.RemoteAddr()
+		ip := utils.Context.GetRemoteIP(ctx)
 
 		// log
 		log := app.NewSessionLogger()
@@ -224,7 +224,7 @@ func loggerMiddlewareWithJson(app core.IApp) iris.Handler {
 			zap.String("method", ctx.Method()),
 			zap.String("path", ctx.Path()),
 			zap.Strings("params", params),
-			zap.String("ip", addr),
+			zap.String("ip", ip),
 		)
 
 		// handler
@@ -237,7 +237,7 @@ func loggerMiddlewareWithJson(app core.IApp) iris.Handler {
 			zap.String("method", ctx.Method()),
 			zap.String("path", ctx.Path()),
 			zap.Strings("params", params),
-			zap.String("ip", addr),
+			zap.String("ip", ip),
 			zap.String("latency_text", latency.String()),
 			zap.Duration("latency", latency),
 		}

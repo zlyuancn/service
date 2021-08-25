@@ -9,6 +9,9 @@
 package utils
 
 import (
+	"net"
+	"strings"
+
 	"github.com/kataras/iris/v12"
 	"github.com/opentracing/opentracing-go"
 
@@ -43,4 +46,25 @@ func (c *contextUtil) SaveOpenTraceSpanToIrisContext(ctx iris.Context, span open
 // 从iris上下文中获取链路追踪跨度, 如果失败会panic
 func (c *contextUtil) MustGetOpenTraceSpanFromIrisContext(ctx iris.Context) opentracing.Span {
 	return ctx.Values().Get(OpenTraceSpanSaveFieldKey).(opentracing.Span)
+}
+
+// 试图解析并返回真实客户端的请求IP
+func (c *contextUtil) GetRemoteIP(ctx iris.Context) string {
+	remoteHeaders := ctx.Application().ConfigurationReadOnly().GetRemoteAddrHeaders()
+	for _, headerName := range remoteHeaders {
+		ipAddresses := strings.Split(ctx.GetHeader(headerName), ",")
+		for _, addr := range ipAddresses {
+			if net.ParseIP(addr) != nil {
+				return addr
+			}
+		}
+	}
+
+	addr := strings.TrimSpace(ctx.Request().RemoteAddr)
+	if addr != "" {
+		if ip, _, err := net.SplitHostPort(addr); err == nil {
+			return ip
+		}
+	}
+	return addr
 }
