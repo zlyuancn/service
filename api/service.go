@@ -77,13 +77,12 @@ func (a *ApiService) Start() error {
 
 	a.app.Debug("正在启动api服务", zap.String("bind", conf.Bind))
 	opts := []iris.Configurator{
-		iris.WithoutBodyConsumptionOnUnmarshal, // 重复消费
-		iris.WithoutPathCorrection,             // 不自动补全斜杠
-		iris.WithOptimizations,                 // 启用性能优化
-		iris.WithoutStartupLog,                 // 不要打印iris启动信息
-		iris.WithPathEscape,                    // 解析path转义
-		iris.WithFireMethodNotAllowed,          // 路由未找到时返回405而不是404
-		iris.WithConfiguration(iris.Configuration{RemoteAddrHeadersForce: conf.UseFirstValidRemoteAddrOfHeaders}),
+		iris.WithoutBodyConsumptionOnUnmarshal,     // 重复消费
+		iris.WithoutPathCorrection,                 // 不自动补全斜杠
+		iris.WithOptimizations,                     // 启用性能优化
+		iris.WithoutStartupLog,                     // 不要打印iris启动信息
+		iris.WithPathEscape,                        // 解析path转义
+		iris.WithFireMethodNotAllowed,              // 路由未找到时返回405而不是404
 		iris.WithPostMaxMemory(conf.PostMaxMemory), // post允许客户端传输最大数据大小
 	}
 	if conf.IPWithNginxForwarded {

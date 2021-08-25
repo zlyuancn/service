@@ -9,7 +9,9 @@
 package api
 
 import (
+	"net"
 	"reflect"
+	"strings"
 
 	"github.com/kataras/iris/v12"
 	iris_context "github.com/kataras/iris/v12/context"
@@ -57,4 +59,25 @@ func (c *Context) Bind(a interface{}) error {
 		return ParamError.WithError(err)
 	}
 	return nil
+}
+
+// 试图解析并返回真实客户端的请求IP
+func (c *Context) RemoteAddr() string {
+	remoteHeaders := c.Application().ConfigurationReadOnly().GetRemoteAddrHeaders()
+	for _, headerName := range remoteHeaders {
+		ipAddresses := strings.Split(c.GetHeader(headerName), ",")
+		for _, addr := range ipAddresses {
+			if net.ParseIP(addr) != nil {
+				return addr
+			}
+		}
+	}
+
+	addr := strings.TrimSpace(c.Request().RemoteAddr)
+	if addr != "" {
+		if ip, _, err := net.SplitHostPort(addr); err == nil {
+			return ip
+		}
+	}
+	return addr
 }
