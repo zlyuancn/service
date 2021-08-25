@@ -44,6 +44,9 @@ func NewHttpService(app core.IApp, opts ...Option) core.IService {
 	)
 	irisApp.AllowMethods(iris.MethodOptions)
 
+	// 配置项
+	irisApp.Configure(o.Configurator...)
+
 	// 中间件
 	for _, fn := range o.Middlewares {
 		irisApp.Use(WrapMiddleware(fn))
