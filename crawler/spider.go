@@ -13,8 +13,8 @@ func (s *Spider) Init() error {
 	return nil
 }
 
-func (s *Spider) SubmitInitialSeed() []core.ISeed {
-	return nil
+func (s *Spider) SubmitInitialSeed(queue core.IQueue, queueName string, front bool) (int, error) {
+	return 0, nil
 }
 
 func (s *Spider) Stop() error {

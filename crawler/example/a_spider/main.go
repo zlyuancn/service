@@ -12,6 +12,6 @@ type Spider struct {
 
 func main() {
 	app := zapp.NewApp("a_spider", crawler.WithService())
-	crawler.RegistryHandler(new(Spider))
+	crawler.RegistrySpider(new(Spider))
 	app.Run()
 }

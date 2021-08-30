@@ -1,3 +1,0 @@
-[services.crawler]
-SpiderName='a_spider'
-HtmlEncoding='utf8'

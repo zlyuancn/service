@@ -4,7 +4,7 @@ type ISpider interface {
 	// 初始化
 	Init() error
 	// 提交初始化种子
-	SubmitInitialSeed() []ISeed
+	SubmitInitialSeed(queue IQueue, queueName string, front bool) (int, error)
 	// 停止
 	Stop() error
 }
