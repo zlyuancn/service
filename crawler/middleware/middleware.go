@@ -15,10 +15,10 @@ type Middleware struct {
 	responseMiddlewares []core.IResponseMiddleware
 }
 
-func (m *Middleware) RequestProcess(crawler core.ICrawler, spider core.ISpider, seed *core.Seed) (*core.Seed, error) {
+func (m *Middleware) RequestProcess(crawler core.ICrawler, seed *core.Seed) (*core.Seed, error) {
 	var err error
 	for _, middleware := range m.requestMiddlewares {
-		seed, err = middleware.Process(crawler, spider, seed)
+		seed, err = middleware.Process(crawler, seed)
 		if err != nil {
 			m.app.Error("请求中间件检查不通过", zap.String("middleware", middleware.Name()), zap.Error(err))
 			return nil, err
@@ -27,10 +27,10 @@ func (m *Middleware) RequestProcess(crawler core.ICrawler, spider core.ISpider, 
 	return seed, nil
 }
 
-func (m *Middleware) ResponseProcess(crawler core.ICrawler, spider core.ISpider, seed *core.Seed) (*core.Seed, error) {
+func (m *Middleware) ResponseProcess(crawler core.ICrawler, seed *core.Seed) (*core.Seed, error) {
 	var err error
 	for _, middleware := range m.responseMiddlewares {
-		seed, err = middleware.Process(crawler, spider, seed)
+		seed, err = middleware.Process(crawler, seed)
 		if err != nil {
 			m.app.Error("响应中间件检查不通过", zap.String("middleware", middleware.Name()), zap.Error(err))
 			return nil, err

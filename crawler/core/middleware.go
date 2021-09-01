@@ -3,9 +3,9 @@ package core
 // 中间件
 type IMiddleware interface {
 	// 请求处理
-	RequestProcess(crawler ICrawler, spider ISpider, seed *Seed) (*Seed, error)
+	RequestProcess(crawler ICrawler, seed *Seed) (*Seed, error)
 	// 响应处理
-	ResponseProcess(crawler ICrawler, spider ISpider, seed *Seed) (*Seed, error)
+	ResponseProcess(crawler ICrawler, seed *Seed) (*Seed, error)
 	// 关闭
 	Close() error
 }
@@ -15,7 +15,7 @@ type IRequestMiddleware interface {
 	// 中间件名
 	Name() string
 	// 处理
-	Process(crawler ICrawler, spider ISpider, seed *Seed) (*Seed, error)
+	Process(crawler ICrawler, seed *Seed) (*Seed, error)
 	// 关闭
 	Close() error
 }
@@ -25,13 +25,13 @@ type IResponseMiddleware interface {
 	// 中间件名
 	Name() string
 	// 处理
-	Process(crawler ICrawler, spider ISpider, seed *Seed) (*Seed, error)
+	Process(crawler ICrawler, seed *Seed) (*Seed, error)
 	// 关闭
 	Close() error
 }
 
 type MiddlewareBase struct{}
 
-func (m *MiddlewareBase) Name() string                                         { return "base" }
-func (m *MiddlewareBase) Process(ICrawler, ISpider, seed *Seed) (*Seed, error) { return seed, nil }
-func (m *MiddlewareBase) Close() error                                         { return nil }
+func (m *MiddlewareBase) Name() string                                { return "base" }
+func (m *MiddlewareBase) Process(ICrawler, seed *Seed) (*Seed, error) { return seed, nil }
+func (m *MiddlewareBase) Close() error                                { return nil }

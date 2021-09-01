@@ -10,6 +10,8 @@ var (
 )
 
 type ICrawler interface {
+	// 获取spider
+	Spider() ISpider
 	/*
 	   **放入种子
 	    seed 种子

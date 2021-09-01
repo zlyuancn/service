@@ -71,6 +71,10 @@ func (c *Crawler) Close() error {
 	return nil
 }
 
+func (c *Crawler) Spider() core.ISpider {
+	return c.spider
+}
+
 func NewCrawler(app zapp_core.IApp) zapp_core.IService {
 	conf := config.NewConfig(app)
 	confKey := "services." + string(config.NowServiceType)

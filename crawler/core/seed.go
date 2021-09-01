@@ -20,6 +20,8 @@ type Seed struct {
 
 	// uri
 	Uri string
+	// 请求方法
+	Method string
 	// 解析方法名
 	ParserMethod string
 	// 检查期望方法名
@@ -29,6 +31,12 @@ type Seed struct {
 // 设置Uri
 func (s *Seed) WithUri(uri string) *Seed {
 	s.Uri = uri
+	return s
+}
+
+// 设置请求方法
+func (s *Seed) WithMethod(method string) *Seed {
+	s.Method = method
 	return s
 }
 

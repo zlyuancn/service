@@ -16,7 +16,7 @@ func NewCheckSeedIsValidMiddleware() core.IRequestMiddleware {
 }
 
 func (m *CheckHttpStatusCode) Name() string { return "CheckHttpStatusCode" }
-func (m *CheckHttpStatusCode) Process(crawler core.ICrawler, spider core.ISpider, seed *core.Seed) (*core.Seed, error) {
+func (m *CheckHttpStatusCode) Process(crawler core.ICrawler, seed *core.Seed) (*core.Seed, error) {
 	if seed.Response == nil {
 		return seed, nil
 	}

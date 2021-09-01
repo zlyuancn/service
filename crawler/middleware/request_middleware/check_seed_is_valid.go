@@ -16,7 +16,7 @@ func NewCheckSeedIsValidMiddleware() core.IRequestMiddleware {
 }
 
 func (m *CheckSeedIsValid) Name() string { return "CheckSeedIsValid" }
-func (m *CheckSeedIsValid) Process(crawler core.ICrawler, spider core.ISpider, seed *core.Seed) (*core.Seed, error) {
+func (m *CheckSeedIsValid) Process(crawler core.ICrawler, seed *core.Seed) (*core.Seed, error) {
 	// 检查预期响应是可选的
 	if seed.CheckExpectMethod != "" {
 		_, ok := crawler.GetSpiderParserMethod(seed.CheckExpectMethod)

@@ -74,7 +74,7 @@ func (c *Crawler) seedProcess(raw string) error {
 	}
 
 	// 请求处理
-	seed, err = c.middleware.RequestProcess(c, c.spider, seed)
+	seed, err = c.middleware.RequestProcess(c, seed)
 	if err != nil {
 		return err
 	}
@@ -108,14 +108,14 @@ func (c *Crawler) seedProcess(raw string) error {
 // 下载完善种子
 func (c *Crawler) download(raw string, seed *core.Seed) (*core.Seed, error) {
 	// 下载
-	seed, err := c.downloader.Download(seed)
+	seed, err := c.downloader.Download(c, seed)
 	if err != nil {
 		return nil, err
 	}
 
 	// 响应处理
 	seed.Raw = raw
-	seed, err = c.middleware.ResponseProcess(c, c.spider, seed)
+	seed, err = c.middleware.ResponseProcess(c, seed)
 	if err != nil {
 		return nil, err
 	}

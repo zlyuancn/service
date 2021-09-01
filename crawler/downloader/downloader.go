@@ -10,7 +10,7 @@ type Downloader struct {
 	app zapp_core.IApp
 }
 
-func (d *Downloader) Download(seed *core.Seed) (*core.Seed, error) {
+func (d *Downloader) Download(crawler core.ICrawler, seed *core.Seed) (*core.Seed, error) {
 	if seed.Uri == "" {
 		return seed, nil
 	}
