@@ -27,11 +27,16 @@ func (r *RedisQueue) Put(queueName string, raw string, front bool) (int, error) 
 	return int(size), err
 }
 
-func (r *RedisQueue) Pop(queueName string, front bool) (string, error) {
+func (r *RedisQueue) Pop(queueName string, front bool) (result string, err error) {
 	if front {
-		return r.client.LPop(context.Background(), queueName).Result()
+		result, err = r.client.LPop(context.Background(), queueName).Result()
+	} else {
+		result, err = r.client.RPop(context.Background(), queueName).Result()
 	}
-	return r.client.RPop(context.Background(), queueName).Result()
+	if err == redis.Nil {
+		return "", core.EmptyQueueError
+	}
+	return result, err
 }
 
 func (r *RedisQueue) QueueSize(queueName string) (int, error) {
