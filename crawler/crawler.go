@@ -54,9 +54,9 @@ func (c *Crawler) Start() error {
 }
 
 func (c *Crawler) Close() error {
-	err := c.spider.Stop()
+	err := c.spider.Close()
 	if err != nil {
-		c.app.Error("spider停止时出错", zap.Error(err))
+		c.app.Error("spider关闭时出错", zap.Error(err))
 	}
 
 	if err = c.downloader.Close(); err != nil {

@@ -17,6 +17,6 @@ func (s *Spider) SubmitInitialSeed() error {
 	return nil
 }
 
-func (s *Spider) Stop() error {
+func (s *Spider) Close() error {
 	return nil
 }

@@ -7,6 +7,6 @@ type ISpider interface {
 	Init(crawler ICrawler) error
 	// 提交初始化种子
 	SubmitInitialSeed() error
-	// 停止
-	Stop() error
+	// 关闭
+	Close() error
 }
