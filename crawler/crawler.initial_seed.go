@@ -5,15 +5,17 @@ import (
 
 	"github.com/robfig/cron/v3"
 	"go.uber.org/zap"
-
-	"github.com/zly-app/service/crawler/config"
 )
 
 const onceTriggerTimeLayout = "2006-01-02 15:04:05"
 
 // 检查提交初始化种子
 func (c *Crawler) CheckSubmitInitialSeed() {
-	expression := config.Conf.Spider.SubmitInitialSeedOpportunity
+	if c.conf.Spider.UseScheduler { // 交给调度器管理
+		return
+	}
+
+	expression := c.conf.Spider.SubmitInitialSeedOpportunity
 	switch expression {
 	case "", "none":
 		return
@@ -30,14 +32,16 @@ func (c *Crawler) CheckSubmitInitialSeed() {
 			return
 		}
 
-		timer := time.NewTimer(interval)
-		defer timer.Stop()
+		go func() {
+			timer := time.NewTimer(interval)
+			defer timer.Stop()
 
-		select {
-		case <-c.app.BaseContext().Done():
-		case <-timer.C:
-			c.SubmitInitialSeed()
-		}
+			select {
+			case <-c.app.BaseContext().Done():
+			case <-timer.C:
+				c.SubmitInitialSeed()
+			}
+		}()
 		return
 	}
 
@@ -47,30 +51,32 @@ func (c *Crawler) CheckSubmitInitialSeed() {
 		c.app.Fatal("spider.SubmitInitialSeedOpportunity 配置格式错误", zap.Error(err))
 	}
 
-	targetTime = time.Now()
-	for {
-		targetTime = schedule.Next(targetTime)
+	go func() {
+		targetTime = time.Now()
+		for {
+			targetTime = schedule.Next(targetTime)
 
-		interval := targetTime.Sub(time.Now())
-		if interval <= 0 {
-			continue
-		}
+			interval := targetTime.Sub(time.Now())
+			if interval <= 0 {
+				continue
+			}
 
-		timer := time.NewTimer(interval)
-		select {
-		case <-c.app.BaseContext().Done():
-			timer.Stop()
-			return
-		case <-timer.C:
-			c.SubmitInitialSeed()
+			timer := time.NewTimer(interval)
+			select {
+			case <-c.app.BaseContext().Done():
+				timer.Stop()
+				return
+			case <-timer.C:
+				c.SubmitInitialSeed()
+			}
 		}
-	}
+	}()
 }
 
 // 提交种子
 func (c *Crawler) SubmitInitialSeed() {
-	if config.Conf.Frame.StopSubmitInitialSeedIfNotEmptyQueue {
-		empty, err := c.queue.CheckQueueIsEmpty()
+	if c.conf.Frame.StopSubmitInitialSeedIfNotEmptyQueue {
+		empty, err := c.CheckQueueIsEmpty(c.conf.Spider.Name)
 		if err != nil {
 			c.app.Error("检查队列是否为空失败", zap.Error(err))
 			return
@@ -83,12 +89,9 @@ func (c *Crawler) SubmitInitialSeed() {
 	}
 
 	c.app.Info("开始提交初始化种子")
-	queueName := config.Conf.Spider.Name + config.Conf.Frame.SeedQueueSuffix
-	front := config.Conf.Frame.SubmitInitialSeedToFront
-	count, err := c.spider.SubmitInitialSeed(c.queue, queueName, front)
-	if err != nil {
+	if err := c.spider.SubmitInitialSeed(); err != nil {
 		c.app.Error("提交初始化种子失败", zap.Error(err))
 		return
 	}
-	c.app.Info("初始化种子提交完成", zap.Int("count", count))
+	c.app.Info("初始化种子提交完成")
 }

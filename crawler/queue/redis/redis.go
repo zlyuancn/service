@@ -18,23 +18,25 @@ type RedisQueue struct {
 	client redis.UniversalClient
 }
 
-func (r *RedisQueue) Put(queueName string, seed core.ISeed, front bool) error {
-	data, err := seed.Encode()
-	if err != nil {
-		return fmt.Errorf("seed编码失败: %v", err)
-	}
+func (r *RedisQueue) Put(queueName string, raw string, front bool) (int, error) {
 	if front {
-		return r.client.LPush(context.Background(), queueName, data).Err()
+		size, err := r.client.LPush(context.Background(), queueName, raw).Result()
+		return int(size), err
 	}
-	return r.client.RPush(context.Background(), queueName, data).Err()
+	size, err := r.client.RPush(context.Background(), queueName, raw).Result()
+	return int(size), err
 }
 
-func (r *RedisQueue) Pop(queueName string, front bool) (core.ISeed, error) {
-	panic("implement me")
+func (r *RedisQueue) Pop(queueName string, front bool) (string, error) {
+	if front {
+		return r.client.LPop(context.Background(), queueName).Result()
+	}
+	return r.client.RPop(context.Background(), queueName).Result()
 }
 
-func (r *RedisQueue) CheckQueueIsEmpty() (bool, error) {
-	return true, nil
+func (r *RedisQueue) QueueSize(queueName string) (int, error) {
+	size, err := r.client.LLen(context.Background(), queueName).Result()
+	return int(size), err
 }
 
 func (r *RedisQueue) Close() error {

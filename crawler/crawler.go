@@ -10,16 +10,19 @@ import (
 	"github.com/zly-app/service/crawler/config"
 	"github.com/zly-app/service/crawler/core"
 	"github.com/zly-app/service/crawler/downloader"
+	"github.com/zly-app/service/crawler/middleware"
 	"github.com/zly-app/service/crawler/queue"
 )
 
 type Crawler struct {
-	app  zapp_core.IApp
-	conf *config.ServiceConfig
+	app           zapp_core.IApp
+	conf          *config.ServiceConfig
+	parserMethods map[string]core.ParserMethod
 
 	spider     core.ISpider
 	queue      core.IQueue
 	downloader core.IDownloader
+	middleware core.IMiddleware
 }
 
 func (c *Crawler) Inject(a ...interface{}) {
@@ -36,17 +39,17 @@ func (c *Crawler) Inject(a ...interface{}) {
 	if !ok {
 		c.app.Fatal("crawler服务注入类型错误, 它必须能转为 crawler/core.ISpider")
 	}
+
+	c.CheckSpiderParserMethod()
 }
 
 func (c *Crawler) Start() error {
-	err := c.spider.Init()
+	err := c.spider.Init(c)
 	if err != nil {
 		return fmt.Errorf("spider初始化失败: %v", err)
 	}
 
-	// 提交初始化种子
-	go c.CheckSubmitInitialSeed()
-
+	go c.Run()
 	return nil
 }
 
@@ -58,6 +61,9 @@ func (c *Crawler) Close() error {
 
 	if err = c.downloader.Close(); err != nil {
 		c.app.Error("关闭下载器时出错误", zap.Error(err))
+	}
+	if err = c.middleware.Close(); err != nil {
+		c.app.Error("关闭中间件时出错误", zap.Error(err))
 	}
 	if err = c.queue.Close(); err != nil {
 		c.app.Error("关闭队列时出错误", zap.Error(err))
@@ -84,5 +90,6 @@ func NewCrawler(app zapp_core.IApp) zapp_core.IService {
 		conf:       conf,
 		queue:      queue.NewQueue(app),
 		downloader: downloader.NewDownloader(app),
+		middleware: middleware.NewMiddleware(app),
 	}
 }

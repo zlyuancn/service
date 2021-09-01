@@ -2,14 +2,11 @@ package memory
 
 import (
 	"container/list"
-	"fmt"
 	"sync"
 
 	zapp_core "github.com/zly-app/zapp/core"
 
-	"github.com/zly-app/service/crawler/config"
 	"github.com/zly-app/service/crawler/core"
-	"github.com/zly-app/service/crawler/seed"
 )
 
 type MemoryQueue struct {
@@ -26,32 +23,27 @@ func (m *MemoryQueue) getQueue(queueName string) *list.List {
 	return queue
 }
 
-func (m *MemoryQueue) Put(queueName string, seed core.ISeed, front bool) error {
+func (m *MemoryQueue) Put(queueName string, raw string, front bool) (int, error) {
 	m.mx.Lock()
 	defer m.mx.Unlock()
 
-	data, err := seed.Encode()
-	if err != nil {
-		return fmt.Errorf("seed编码失败: %v", err)
-	}
-
 	queue := m.getQueue(queueName)
 	if front {
-		queue.PushFront(data)
-		return nil
+		queue.PushFront(raw)
+	} else {
+		queue.PushBack(raw)
 	}
 
-	queue.PushBack(data)
-	return nil
+	return queue.Len(), nil
 }
 
-func (m *MemoryQueue) Pop(queueName string, front bool) (core.ISeed, error) {
+func (m *MemoryQueue) Pop(queueName string, front bool) (string, error) {
 	m.mx.Lock()
 	defer m.mx.Unlock()
 
 	queue := m.getQueue(queueName)
 	if queue.Len() == 0 {
-		return nil, nil
+		return "", core.EmptyQueueError
 	}
 
 	var element *list.Element
@@ -62,25 +54,19 @@ func (m *MemoryQueue) Pop(queueName string, front bool) (core.ISeed, error) {
 	}
 
 	raw := queue.Remove(element).(string)
-	return seed.MakeSeedOfRaw(raw)
+	return raw, nil
 }
 
-func (m *MemoryQueue) CheckQueueIsEmpty() (bool, error) {
+func (m *MemoryQueue) QueueSize(queueName string) (int, error) {
 	m.mx.Lock()
 	defer m.mx.Unlock()
 
-	for _, suffix := range config.Conf.Frame.QueueSuffixes {
-		if config.Conf.Frame.CheckEmptyQueueIgnoreErrorQueue {
-			if suffix == config.Conf.Frame.ErrorSeedQueueSuffix || suffix == config.Conf.Frame.ParserErrorSeedQueueSuffix {
-				continue
-			}
-		}
-		queueName := config.Conf.Spider.Name + suffix
-		if _, ok := m.queues[queueName]; ok {
-			return false, nil
-		}
+	queue, ok := m.queues[queueName]
+	if !ok {
+		return 0, nil
 	}
-	return true, nil
+
+	return queue.Len(), nil
 }
 
 func (m *MemoryQueue) Close() error {

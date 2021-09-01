@@ -5,8 +5,13 @@ import (
 )
 
 const (
-	// 默认队列后缀
-	defaultFrameQueueSuffixes = ":vip,:debug,:seed"
+	/** 默认队列后缀
+	  vip 表示一个高优先级的抓取任务
+	  debug 调试用
+	  seed 种子队列
+	  error 下载错误队列, 再次抓取可能会成功
+	*/
+	defaultFrameQueueSuffixes = ":vip,:debug,:seed,:error"
 	// 种子队列后缀名
 	defaultFrameSeedQueueSuffix = ":seed"
 	// 错误种子队列后缀名
@@ -14,8 +19,6 @@ const (
 	// 解析错误种子队列后缀名
 	defaultFrameParserErrorSeedQueueSuffix = ":error_parser"
 
-	// 默认提交初始化种子到队列前面
-	defaultSubmitInitialSeedToFront = true
 	// 默认非空队列不提交初始化种子
 	defaultFrameStopSubmitInitialSeedIfNotEmptyQueue = true
 	// 默认检查是否为空队列的程序忽略error队列
@@ -25,7 +28,7 @@ const (
 	defaultFrameRequestTimeout = 20000
 	// 默认spider错误后等待时间
 	defaultFrameSpiderErrWaitTime = 3000
-	// 默认spider错误后等待时间
+	// 默认空队列等待时间
 	defaultFrameEmptyQueueWaitTime = 60000
 	// 默认重试等待时间
 	defaultFrameRequestRetryWaitTime = 1000
@@ -36,10 +39,9 @@ const (
 type FrameConfig struct {
 	QueueSuffixes              []string // 队列后缀, 按顺序查找种子
 	SeedQueueSuffix            string   // 种子队列后缀名
-	ErrorSeedQueueSuffix       string   // 错误种子队列后缀名
-	ParserErrorSeedQueueSuffix string   // 解析错误种子队列后缀名
+	ErrorSeedQueueSuffix       string   // 错误种子队列后缀名, 主要是下载器错误
+	ParserErrorSeedQueueSuffix string   // 解析错误种子队列后缀名, 包括处理程序错误, 处理程序不存在, 种子解析失败等
 
-	SubmitInitialSeedToFront             bool // 提交初始化种子到队列前面
 	StopSubmitInitialSeedIfNotEmptyQueue bool // 非空队列不提交初始化种子
 	CheckEmptyQueueIgnoreErrorQueue      bool // 检查是否为空队列的程序忽略error队列
 
@@ -47,12 +49,11 @@ type FrameConfig struct {
 	SpiderErrWaitTime      int64 // spider错误后等待时间, 单位毫秒
 	EmptyQueueWaitTime     int64 // 空队列等待时间, 单位毫秒
 	RequestRetryWaitTime   int64 // 请求重试等待时间, 单位毫秒
-	RequestMaxAttemptCount int64 // 最大尝试请求次数
+	RequestMaxAttemptCount int   // 最大尝试请求次数
 }
 
 func newFrameConfig() FrameConfig {
 	return FrameConfig{
-		SubmitInitialSeedToFront:             defaultSubmitInitialSeedToFront,
 		StopSubmitInitialSeedIfNotEmptyQueue: defaultFrameStopSubmitInitialSeedIfNotEmptyQueue,
 		CheckEmptyQueueIgnoreErrorQueue:      defaultFrameCheckEmptyQueueIgnoreErrorQueue,
 	}

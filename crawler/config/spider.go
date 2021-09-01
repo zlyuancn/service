@@ -8,18 +8,20 @@ import (
 
 const (
 	// 默认启用cookie
-	defaultSpiderEnableCookie = false
+	defaultSpiderUseCookie = false
 	// 默认html编码
 	defaultSpiderHtmlEncoding = "utf8"
 	// 默认请求方法
 	defaultSpiderRequestMethod = "get"
 	// 默认提交初始化种子的时机
 	defaultSpiderSubmitInitialSeedOpportunity = "start"
+	// 默认使用调度器
+	defaultSpiderUseScheduler = false
 )
 
 type SpiderConfig struct {
 	Name          string // 爬虫名
-	EnableCookie  bool   // 是否启用cookie
+	UseCookie     bool   // 是否启用cookie
 	HtmlEncoding  string // 默认html编码
 	RequestMethod string // 默认请求方法
 	/*
@@ -30,13 +32,19 @@ type SpiderConfig struct {
 		 cron表达式
 	*/
 	SubmitInitialSeedOpportunity string
+	// 使用调度器, 提交初始化种子的时机交给调度器管理, 这可以解决多进程运行时每个进程都在提交种子
+	UseScheduler bool
+
+	ExpectHttpStatusCode  []int // 期望的http状态码列表
+	InvalidHttpStatusCode []int // 无效的http状态码列表, 如果配置了ExpectHttpStatusCode, 则以ExpectHttpStatusCode为准
 }
 
 func newSpiderConfig(app zapp_core.IApp) SpiderConfig {
 	return SpiderConfig{
 		Name:                         app.Name(),
-		EnableCookie:                 defaultSpiderEnableCookie,
+		UseCookie:                    defaultSpiderUseCookie,
 		SubmitInitialSeedOpportunity: defaultSpiderSubmitInitialSeedOpportunity,
+		UseScheduler:                 defaultSpiderUseScheduler,
 	}
 }
 func (conf *SpiderConfig) Check() error {

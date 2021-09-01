@@ -7,12 +7,23 @@ import (
 )
 
 type Downloader struct {
+	app zapp_core.IApp
 }
 
-func NewDownloader(app zapp_core.IApp) core.IDownloader {
-	return &Downloader{}
+func (d *Downloader) Download(seed *core.Seed) (*core.Seed, error) {
+	if seed.Uri == "" {
+		return seed, nil
+	}
+
+	return seed, nil
 }
 
 func (d *Downloader) Close() error {
 	return nil
+}
+
+func NewDownloader(app zapp_core.IApp) core.IDownloader {
+	return &Downloader{
+		app: app,
+	}
 }

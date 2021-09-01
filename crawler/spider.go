@@ -9,12 +9,12 @@ var _ core.ISpider = (*Spider)(nil)
 type Spider struct {
 }
 
-func (s *Spider) Init() error {
+func (s *Spider) Init(crawler core.ICrawler) error {
 	return nil
 }
 
-func (s *Spider) SubmitInitialSeed(queue core.IQueue, queueName string, front bool) (int, error) {
-	return 0, nil
+func (s *Spider) SubmitInitialSeed() error {
+	return nil
 }
 
 func (s *Spider) Stop() error {
