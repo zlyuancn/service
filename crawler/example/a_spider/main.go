@@ -21,9 +21,7 @@ func (s *Spider) Init(crawler core.ICrawler) error {
 
 func (s *Spider) SubmitInitialSeed() error {
 	seed := s.crawler.NewSeed("https://www.baidu.com/", s.Parser)
-	if err := s.crawler.PutSeed(seed, true); err != nil {
-		return err
-	}
+	s.crawler.SubmitSeed(seed)
 	return nil
 }
 

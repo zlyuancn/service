@@ -83,11 +83,6 @@ func (c *Crawler) seedProcess(raw string) error {
 	// 循环尝试下载
 	var attempt int
 	for {
-		attempt++
-		if attempt > c.conf.Frame.RequestMaxAttemptCount {
-			return fmt.Errorf("超过最大尝试次数")
-		}
-
 		// 每次重新生成seed, 因为每次处理可能会修改seed
 		seedCopy := *seed
 		seedResult, err = c.download(raw, &seedCopy)
@@ -99,6 +94,11 @@ func (c *Crawler) seedProcess(raw string) error {
 			return err
 		}
 		c.app.Error("尝试下载失败", zap.Int("attempt", attempt), zap.Error(err))
+		attempt++
+		if attempt > c.conf.Frame.RequestMaxAttemptCount {
+			return fmt.Errorf("超过最大尝试次数")
+		}
+		time.Sleep(time.Duration(c.conf.Frame.RequestRetryWaitTime) * time.Millisecond)
 	}
 
 	// 解析

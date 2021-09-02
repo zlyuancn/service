@@ -38,6 +38,15 @@ func (c *Crawler) PopARawSeed() (string, error) {
 	return "", core.EmptyQueueError
 }
 
+// 提交种子
+//
+// 这里提交失败会立即终止
+func (c *Crawler) SubmitSeed(seed *core.Seed) {
+	if err := c.PutSeed(seed, c.conf.Frame.SubmitSeedToQueueFront); err != nil {
+		panic(err)
+	}
+}
+
 /*
 **放入种子
  seed 种子

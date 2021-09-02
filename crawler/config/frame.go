@@ -23,6 +23,8 @@ const (
 	defaultFrameStopSubmitInitialSeedIfNotEmptyQueue = true
 	// 默认检查是否为空队列的程序忽略error队列
 	defaultFrameCheckEmptyQueueIgnoreErrorQueue = true
+	// 默认提交种子到队列前面
+	defaultFrameSubmitSeedToQueueFront = true
 
 	// 默认请求超时
 	DefaultFrameRequestTimeout = 20000
@@ -44,6 +46,7 @@ type FrameConfig struct {
 
 	StopSubmitInitialSeedIfNotEmptyQueue bool // 非空队列不提交初始化种子
 	CheckEmptyQueueIgnoreErrorQueue      bool // 检查是否为空队列的程序忽略error队列
+	SubmitSeedToQueueFront               bool // 提交种子到队列前面, (取出种子是从前面开始)
 
 	RequestTimeout         int64 // 请求超时, 单位毫秒
 	SpiderErrWaitTime      int64 // spider错误后等待时间, 单位毫秒
@@ -56,6 +59,7 @@ func newFrameConfig() FrameConfig {
 	return FrameConfig{
 		StopSubmitInitialSeedIfNotEmptyQueue: defaultFrameStopSubmitInitialSeedIfNotEmptyQueue,
 		CheckEmptyQueueIgnoreErrorQueue:      defaultFrameCheckEmptyQueueIgnoreErrorQueue,
+		SubmitSeedToQueueFront:               defaultFrameSubmitSeedToQueueFront,
 	}
 }
 func (conf *FrameConfig) Check() error {

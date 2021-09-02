@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/robfig/cron/v3"
+	"github.com/zly-app/zapp/pkg/utils"
 	"go.uber.org/zap"
 )
 
@@ -89,8 +90,8 @@ func (c *Crawler) SubmitInitialSeed() {
 	}
 
 	c.app.Info("开始提交初始化种子")
-	if err := c.spider.SubmitInitialSeed(); err != nil {
-		c.app.Error("提交初始化种子失败", zap.Error(err))
+	if err := utils.Recover.WrapCall(c.spider.SubmitInitialSeed); err != nil {
+		c.app.Error("提交初始化种子失败", zap.String("error", utils.Recover.GetRecoverErrorDetail(err)))
 		return
 	}
 	c.app.Info("初始化种子提交完成")
