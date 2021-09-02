@@ -4,8 +4,9 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
-
-	"github.com/zly-app/service/crawler/utils"
+	"reflect"
+	"runtime"
+	"strings"
 )
 
 // 种子数据
@@ -59,13 +60,23 @@ type Seed struct {
 	Meta map[string]interface{}
 }
 
+// GetFuncName 获取函数或方法的名称
+func (*Seed) getFuncName(a interface{}) string {
+	p := reflect.ValueOf(a).Pointer()
+	rawName := runtime.FuncForPC(p).Name()
+	name := strings.TrimSuffix(rawName, ".func1")
+	ss := strings.Split(name, ".")
+	name = strings.TrimSuffix(ss[len(ss)-1], "-fm")
+	return name
+}
+
 // 设置解析方法
 func (s *Seed) SetParserMethod(parserMethod interface{}) {
 	switch t := parserMethod.(type) {
 	case string:
 		s.ParserMethod = t
 	case ParserMethod:
-		s.ParserMethod = utils.Reflect.GetFuncName(t)
+		s.ParserMethod = s.getFuncName(t)
 	default:
 		panic(fmt.Errorf("无法获取方法名: [%T]%v", parserMethod, parserMethod))
 	}
@@ -77,7 +88,7 @@ func (s *Seed) SetCheckExpectMethod(checkMethod interface{}) {
 	case string:
 		s.CheckExpectMethod = t
 	case ParserMethod:
-		s.CheckExpectMethod = utils.Reflect.GetFuncName(t)
+		s.CheckExpectMethod = s.getFuncName(t)
 	default:
 		panic(fmt.Errorf("无法获取方法名: [%T]%v", checkMethod, checkMethod))
 	}
