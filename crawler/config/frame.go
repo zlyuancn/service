@@ -25,7 +25,7 @@ const (
 	defaultFrameCheckEmptyQueueIgnoreErrorQueue = true
 
 	// 默认请求超时
-	defaultFrameRequestTimeout = 20000
+	DefaultFrameRequestTimeout = 20000
 	// 默认spider错误后等待时间
 	defaultFrameSpiderErrWaitTime = 3000
 	// 默认空队列等待时间
@@ -73,7 +73,7 @@ func (conf *FrameConfig) Check() error {
 	}
 
 	if conf.RequestTimeout <= 0 {
-		conf.RequestTimeout = defaultFrameRequestTimeout
+		conf.RequestTimeout = DefaultFrameRequestTimeout
 	}
 	if conf.SpiderErrWaitTime <= 0 {
 		conf.SpiderErrWaitTime = defaultFrameSpiderErrWaitTime

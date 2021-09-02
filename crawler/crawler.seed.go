@@ -9,6 +9,18 @@ import (
 	"github.com/zly-app/service/crawler/seeds"
 )
 
+/*
+**创建种子
+ url 抓取连接
+ parserMethod 解析方法, 可以是方法名或方法实体
+*/
+func (c *Crawler) NewSeed(url string, parserMethod interface{}) *core.Seed {
+	seed := seeds.NewSeed()
+	seed.Request.Url = url
+	seed.SetParserMethod(parserMethod)
+	return seed
+}
+
 // 弹出一个种子
 func (c *Crawler) PopARawSeed() (string, error) {
 	for _, suffix := range c.conf.Frame.QueueSuffixes {

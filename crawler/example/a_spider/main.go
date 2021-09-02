@@ -7,7 +7,6 @@ import (
 
 	"github.com/zly-app/service/crawler"
 	"github.com/zly-app/service/crawler/core"
-	"github.com/zly-app/service/crawler/seeds"
 )
 
 type Spider struct {
@@ -21,14 +20,16 @@ func (s *Spider) Init(crawler core.ICrawler) error {
 }
 
 func (s *Spider) SubmitInitialSeed() error {
-	if err := s.crawler.PutSeed(seeds.NewSeed("", s.Parser), true); err != nil {
+	seed := s.crawler.NewSeed("https://www.baidu.com/", s.Parser)
+	if err := s.crawler.PutSeed(seed, true); err != nil {
 		return err
 	}
 	return nil
 }
 
 func (s *Spider) Parser(seed *core.Seed) error {
-	fmt.Println(seed)
+	fmt.Println(seed.Raw)
+	fmt.Println(string(seed.HttpResponseBody))
 	return nil
 }
 

@@ -3,6 +3,7 @@ package core
 import (
 	"fmt"
 	"net/http"
+	"net/url"
 
 	"github.com/zly-app/service/crawler/utils"
 )
@@ -12,36 +13,54 @@ type Seed struct {
 	// 原始数据, 构建种子时的数据
 	Raw string `json:"-"`
 
-	Request *http.Request `json:"-"`
+	HttpRequest *http.Request `json:"-"`
 	// 响应, 注意: 不能使用它的body, 而是应该使用 ResponseBody
-	Response *http.Response `json:"-"`
+	HttpResponse *http.Response `json:"-"`
 	// 响应数据
-	ResponseBody []byte `json:"-"`
+	HttpResponseBody []byte `json:"-"`
 
-	// uri
-	Uri string
-	// 请求方法
-	Method string
+	// 请求参数
+	Request struct {
+		// 请求方法
+		Method string
+		// url
+		Url string
+		// url参数
+		Params url.Values
+		// headers
+		Headers http.Header
+		// user-agent类型
+		UserAgentType string
+
+		// 请求body数据
+		Body string
+		// 表单
+		Form url.Values
+		// post表单
+		PostForm url.Values
+		// 附加头
+		Trailer http.Header
+
+		// 是否使用cookie
+		UseCookie bool
+		// 是否自动跳转
+		AutoRedirects bool
+		// 响应数据编码
+		Encoding string
+		// 请求超时时间, 毫秒
+		Timeout int64
+	}
+
 	// 解析方法名
 	ParserMethod string
 	// 检查期望方法名
 	CheckExpectMethod string
-}
-
-// 设置Uri
-func (s *Seed) WithUri(uri string) *Seed {
-	s.Uri = uri
-	return s
-}
-
-// 设置请求方法
-func (s *Seed) WithMethod(method string) *Seed {
-	s.Method = method
-	return s
+	// 元数据
+	Meta map[string]interface{}
 }
 
 // 设置解析方法
-func (s *Seed) WithParserMethod(parserMethod interface{}) *Seed {
+func (s *Seed) SetParserMethod(parserMethod interface{}) {
 	switch t := parserMethod.(type) {
 	case string:
 		s.ParserMethod = t
@@ -50,11 +69,10 @@ func (s *Seed) WithParserMethod(parserMethod interface{}) *Seed {
 	default:
 		panic(fmt.Errorf("无法获取方法名: [%T]%v", parserMethod, parserMethod))
 	}
-	return s
 }
 
 // 设置检查期望响应方法
-func (s *Seed) WithCheckExpectMethod(checkMethod interface{}) *Seed {
+func (s *Seed) SetCheckExpectMethod(checkMethod interface{}) {
 	switch t := checkMethod.(type) {
 	case string:
 		s.CheckExpectMethod = t
@@ -63,5 +81,4 @@ func (s *Seed) WithCheckExpectMethod(checkMethod interface{}) *Seed {
 	default:
 		panic(fmt.Errorf("无法获取方法名: [%T]%v", checkMethod, checkMethod))
 	}
-	return s
 }

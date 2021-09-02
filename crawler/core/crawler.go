@@ -12,6 +12,8 @@ var (
 type ICrawler interface {
 	// 获取spider
 	Spider() ISpider
+	// 创建种子
+	NewSeed(uri string, parserMethod interface{}) *Seed
 	/*
 	   **放入种子
 	    seed 种子
