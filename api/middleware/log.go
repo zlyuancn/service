@@ -88,7 +88,7 @@ func loggerMiddleware(app core.IApp) iris.Handler {
 
 		// response
 		msgBuff.Reset()
-		msgBuff.WriteString("api.request path: ")
+		msgBuff.WriteString("api.response path: ")
 		msgBuff.WriteString(ctx.Method())
 		msgBuff.WriteByte(' ')
 		msgBuff.WriteString(ctx.Path())
