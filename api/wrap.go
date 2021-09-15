@@ -105,12 +105,15 @@ func WriteToCtx(ctx *Context, result interface{}) {
 	switch v := result.(type) {
 	case []byte:
 		ctx.Values().Set("result", fmt.Sprintf("bytes<len=%d>", len(v)))
+		ctx.ContentType("application/octet-stream")
 		defaultWriteResponseFunc(ctx, OK.Code, OK.Message, v)
 	case *[]byte:
 		ctx.Values().Set("result", fmt.Sprintf("bytes<len=%d>", len(*v)))
+		ctx.ContentType("application/octet-stream")
 		defaultWriteResponseFunc(ctx, OK.Code, OK.Message, *v)
 	default:
 		ctx.Values().Set("result", result)
+		ctx.ContentType("application/json")
 		defaultWriteResponseFunc(ctx, OK.Code, OK.Message, result)
 	}
 }
