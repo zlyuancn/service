@@ -15,6 +15,7 @@ import (
 	"strings"
 	"time"
 
+	jsoniter "github.com/json-iterator/go"
 	"github.com/kataras/iris/v12"
 	iris_context "github.com/kataras/iris/v12/context"
 	"github.com/opentracing/opentracing-go"
@@ -131,16 +132,39 @@ func loggerMiddleware(app core.IApp) iris.Handler {
 
 		// body
 		if hasErr || config.Conf.AlwaysLogBody {
-			body, _ := ctx.GetBody()
-			span.SetTag("body", string(body))
+			var bodyText string
+			if ctx.GetContentTypeRequested() == iris_context.ContentBinaryHeaderValue { // 流
+				bodyText = fmt.Sprintf("body<bytesLen=%d>", ctx.GetContentLength())
+			} else if ctx.GetContentLength() > config.Conf.LogBodyMaxSize { // 超长
+				bodyText = fmt.Sprintf("body<len=%d>", ctx.GetContentLength())
+			} else {
+				body, _ := ctx.GetBody()
+				bodyText = string(body)
+			}
+			span.SetTag("body", bodyText)
 			msgBuff.WriteString("body:")
-			msgBuff.Write(body)
+			msgBuff.WriteString(bodyText)
 			msgBuff.WriteString("\n\n")
 		}
 
 		// result
 		if !hasErr {
-			result, _ := ctx.Values().Get("result").(string)
+			var result string
+			contentType := iris_context.TrimHeaderValue(ctx.ResponseWriter().Header().Get(iris_context.ContentTypeHeaderKey))
+			if contentType == iris_context.ContentBinaryHeaderValue { // 流
+				result = fmt.Sprintf("result<bytesLen=%d>", ctx.ResponseWriter().Written())
+			} else if ctx.ResponseWriter().Written() > config.Conf.LogApiResultMaxSize { // 超长
+				result = fmt.Sprintf("result<len=%d>", ctx.ResponseWriter().Written())
+			} else {
+				switch v := ctx.Values().Get("result").(type) {
+				case nil:
+					result = "result<nil>"
+				case string:
+					result = v
+				default:
+					result, _ = jsoniter.ConfigCompatibleWithStandardLibrary.MarshalToString(v)
+				}
+			}
 			span.SetTag("result", result)
 			if isDebug && config.Conf.LogApiResultInDevelop {
 				msgBuff.WriteString("result: ")
@@ -260,15 +284,37 @@ func loggerMiddlewareWithJson(app core.IApp) iris.Handler {
 
 		// body
 		if hasErr || config.Conf.AlwaysLogBody {
-			body, _ := ctx.GetBody()
-			bodyText := string(body)
+			var bodyText string
+			if ctx.GetContentTypeRequested() == iris_context.ContentBinaryHeaderValue { // 流
+				bodyText = fmt.Sprintf("body<bytesLen=%d>", ctx.GetContentLength())
+			} else if ctx.GetContentLength() > config.Conf.LogBodyMaxSize { // 超长
+				bodyText = fmt.Sprintf("body<len=%d>", ctx.GetContentLength())
+			} else {
+				body, _ := ctx.GetBody()
+				bodyText = string(body)
+			}
 			span.SetTag("body", bodyText)
 			fields = append(fields, zap.String("body", bodyText))
 		}
 
 		// result
 		if !hasErr {
-			result, _ := ctx.Values().Get("result").(string)
+			var result string
+			contentType := iris_context.TrimHeaderValue(ctx.ResponseWriter().Header().Get(iris_context.ContentTypeHeaderKey))
+			if contentType == iris_context.ContentBinaryHeaderValue { // 流
+				result = fmt.Sprintf("result<bytesLen=%d>", ctx.ResponseWriter().Written())
+			} else if ctx.ResponseWriter().Written() > config.Conf.LogApiResultMaxSize { // 超长
+				result = fmt.Sprintf("result<len=%d>", ctx.ResponseWriter().Written())
+			} else {
+				switch v := ctx.Values().Get("result").(type) {
+				case nil:
+					result = "result<nil>"
+				case string:
+					result = v
+				default:
+					result, _ = jsoniter.ConfigCompatibleWithStandardLibrary.MarshalToString(v)
+				}
+			}
 			span.SetTag("result", result)
 			if isDebug && config.Conf.LogApiResultInDevelop {
 				fields = append(fields, zap.Any("result", ctx.Values().Get("result")))
