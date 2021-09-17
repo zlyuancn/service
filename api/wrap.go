@@ -102,17 +102,15 @@ func WriteToCtx(ctx *Context, result interface{}) {
 		return
 	}
 
+	ctx.Values().Set("result", result)
 	switch v := result.(type) {
 	case []byte:
-		ctx.Values().Set("result", fmt.Sprintf("bytes<len=%d>", len(v)))
 		ctx.ContentType(iris_context.ContentBinaryHeaderValue)
 		defaultWriteResponseFunc(ctx, OK.Code, OK.Message, v)
 	case *[]byte:
-		ctx.Values().Set("result", fmt.Sprintf("bytes<len=%d>", len(*v)))
 		ctx.ContentType(iris_context.ContentBinaryHeaderValue)
 		defaultWriteResponseFunc(ctx, OK.Code, OK.Message, *v)
 	default:
-		ctx.Values().Set("result", result)
 		ctx.ContentType(iris_context.ContentJSONHeaderValue)
 		defaultWriteResponseFunc(ctx, OK.Code, OK.Message, result)
 	}
