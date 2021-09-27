@@ -58,10 +58,13 @@ func (m *MysqlBinlogService) Start() error {
 		return errors.New("未注入handler")
 	}
 
-	var conf Config
-	err := m.app.GetConfig().ParseServiceConfig(nowServiceType, &conf)
+	conf := newConfig()
+	err := m.app.GetConfig().ParseServiceConfig(nowServiceType, conf)
+	if err == nil {
+		err = conf.Check()
+	}
 	if err != nil {
-		return err
+		return fmt.Errorf("服务配置错误: %v", err)
 	}
 
 	// 构建配置
@@ -79,9 +82,7 @@ func (m *MysqlBinlogService) Start() error {
 			SkipMasterData: false,
 		},
 	}
-	if conf.Charset != nil {
-		cfg.Charset = *conf.Charset
-	}
+	cfg.Charset = conf.Charset
 	if len(conf.IncludeTableRegex) > 0 {
 		cfg.IncludeTableRegex = append([]string{}, conf.IncludeTableRegex...)
 	}
