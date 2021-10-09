@@ -9,7 +9,6 @@ import (
 	"github.com/Shopify/sarama"
 	"github.com/zly-app/zapp/core"
 	"github.com/zly-app/zapp/pkg/utils"
-	"github.com/zlyuancn/zutils"
 	"go.uber.org/zap"
 )
 
@@ -196,12 +195,15 @@ func (c *consumerCli) Close() error {
 func (c *consumerCli) Setup(session sarama.ConsumerGroupSession) error   { return nil }
 func (c *consumerCli) Cleanup(session sarama.ConsumerGroupSession) error { return nil }
 func (c *consumerCli) ConsumeClaim(session sarama.ConsumerGroupSession, claim sarama.ConsumerGroupClaim) error {
+	var err error
 	for msg := range claim.Messages() {
-		c.process(session, msg)
+		if err = c.process(session, msg); err != nil {
+			return err
+		}
 	}
 	return nil
 }
-func (c *consumerCli) process(sess sarama.ConsumerGroupSession, msg *sarama.ConsumerMessage) {
+func (c *consumerCli) process(sess sarama.ConsumerGroupSession, msg *sarama.ConsumerMessage) error {
 	ctx := &Context{
 		ILogger: c.app.NewSessionLogger(
 			zap.String("kafka_topic", msg.Topic),
@@ -214,14 +216,16 @@ func (c *consumerCli) process(sess sarama.ConsumerGroupSession, msg *sarama.Cons
 	}
 
 	ctx.Debug("kafkaConsumer.receive")
-	err := zutils.Recover.WrapCall(func() error {
+	err := utils.Recover.WrapCall(func() error {
 		return c.conf.Handler(ctx)
 	})
 	if err == nil {
 		sess.MarkMessage(msg, "")
 		ctx.Debug("kafkaConsumer.success")
-		return
+		return nil
 	}
 
-	ctx.Error("kafkaConsumer.error!", zap.Error(err))
+	errDetail := utils.Recover.GetRecoverErrorDetail(err)
+	ctx.Error("kafkaConsumer.error!", zap.String("error", errDetail))
+	return err
 }
