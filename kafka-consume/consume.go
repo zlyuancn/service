@@ -120,7 +120,14 @@ func (c *consumerCli) makeConsumer() (sarama.ConsumerGroup, error) {
 	if strings.HasPrefix(c.conf.KafkaVersion, "v") {
 		c.conf.KafkaVersion = c.conf.KafkaVersion[1:]
 	}
-	kConf.Version, _ = sarama.ParseKafkaVersion(c.conf.KafkaVersion)
+	var err error
+	kConf.Version, err = sarama.ParseKafkaVersion(c.conf.KafkaVersion)
+	if err != nil {
+		return nil, fmt.Errorf("无法解析版本号: %v", err)
+	}
+	if strings.HasPrefix(c.conf.KafkaVersion, "v") {
+		c.conf.KafkaVersion = c.conf.KafkaVersion[1:]
+	}
 
 	consumer, err := sarama.NewConsumerGroup(strings.Split(c.conf.Address, ","), c.conf.GroupID, kConf)
 	if err != nil {

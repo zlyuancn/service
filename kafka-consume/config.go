@@ -8,7 +8,7 @@ import (
 
 const (
 	// 默认kafka版本
-	defaultKafkaVersion = "2.0.0.0"
+	defaultKafkaVersion = "2.0.0"
 	// 默认读取超时
 	defaultReadTimeout = 10000
 	// 默认写入超时
@@ -17,8 +17,6 @@ const (
 	defaultDialTimeout = 2000
 	// 默认分区平衡策略
 	defaultPartitionBalanceStrategy = "range"
-	// 默认压缩类型
-	defaultCompression = "none"
 	// 默认从分区读取失败后重试间隔时间
 	defaultRetryInterval = 2000
 	// 默认消息的最大允许大小
