@@ -18,7 +18,7 @@ const (
 	// 默认分区平衡策略
 	defaultPartitionBalanceStrategy = "range"
 	// 默认从分区读取失败后重试间隔时间
-	defaultRetryInterval = 2000
+	defaultPartitionRetryInterval = 2000
 	// 默认消息的最大允许大小
 	defaultMaxMessageBytes = 1048576
 	// 默认消息最大处理时间(毫秒)
@@ -42,7 +42,7 @@ type ServiceConfig struct {
 	WriteTimeout             int64  // 超时(毫秒)
 	DialTimeout              int64  // 超时(毫秒)
 	PartitionBalanceStrategy string // 分区平衡策略, range, sticky, round_robin
-	RetryInterval            int    // 从分区读取失败后重试间隔时间(毫秒)
+	PartitionRetryInterval   int    // 从分区读取失败后重试间隔时间(毫秒)
 	MaxMessageBytes          int32  // 消息的最大允许大小(字节)
 	MaxProcessingTime        int    // 消息最大处理时间(毫秒)
 	OffsetInitial            string // 找不到消费者组偏移记录时进行偏移初始化, newest 表示新的消费者不会消费以前的数据, oldest 表示新的消费者会从能消费的旧数据开始消费
@@ -77,8 +77,8 @@ func (conf *ServiceConfig) Check() error {
 	if conf.PartitionBalanceStrategy == "" {
 		conf.PartitionBalanceStrategy = defaultPartitionBalanceStrategy
 	}
-	if conf.RetryInterval <= 0 {
-		conf.RetryInterval = defaultRetryInterval
+	if conf.PartitionRetryInterval <= 0 {
+		conf.PartitionRetryInterval = defaultPartitionRetryInterval
 	}
 	if conf.MaxMessageBytes <= 0 {
 		conf.MaxMessageBytes = defaultMaxMessageBytes

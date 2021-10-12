@@ -99,7 +99,7 @@ func (c *consumerCli) makeConsumer() (sarama.ConsumerGroup, error) {
 	default:
 		kConf.Consumer.Group.Rebalance.Strategy = sarama.BalanceStrategyRange
 	}
-	kConf.Consumer.Retry.Backoff = time.Duration(c.conf.RetryInterval) * time.Millisecond
+	kConf.Consumer.Retry.Backoff = time.Duration(c.conf.PartitionRetryInterval) * time.Millisecond
 	kConf.Consumer.Fetch.Max = c.conf.MaxMessageBytes
 	kConf.Consumer.MaxProcessingTime = time.Duration(c.conf.MaxProcessingTime)
 	kConf.Consumer.Return.Errors = true // 如果启用了该选项，未交付的消息将在Errors通道上返回，包括error
