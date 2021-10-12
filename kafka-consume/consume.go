@@ -1,6 +1,7 @@
 package kafka_consume
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"sync"
@@ -33,7 +34,8 @@ type consumerCli struct {
 	conf      *ConsumerConfig
 	consumers []sarama.ConsumerGroup
 	*consumerOptions
-	done chan struct{}
+	runCtx    context.Context
+	runCancel context.CancelFunc
 }
 
 func newConsumer(app core.IApp, conf *ConsumerConfig) *consumerCli {
@@ -41,8 +43,8 @@ func newConsumer(app core.IApp, conf *ConsumerConfig) *consumerCli {
 		app:             app,
 		conf:            conf,
 		consumerOptions: newConsumerOptions(),
-		done:            make(chan struct{}),
 	}
+	c.runCtx, c.runCancel = context.WithCancel(app.BaseContext())
 
 	for _, o := range conf.Opts {
 		o(c.consumerOptions)
@@ -139,17 +141,17 @@ func (c *consumerCli) makeConsumer() (sarama.ConsumerGroup, error) {
 // 开始消费
 func (c *consumerCli) start(consume sarama.ConsumerGroup) {
 	for {
-		select {
-		case <-c.app.BaseContext().Done():
-			return
-		case <-c.done:
-			return
-		default:
-		}
-
-		err := consume.Consume(c.app.BaseContext(), c.conf.Topics, c)
+		err := consume.Consume(c.runCtx, c.conf.Topics, c)
 		if err != nil {
 			c.app.Error("kafka消费者运行时错误", zap.Error(err))
+		}
+
+		t := time.NewTimer(time.Duration(c.conf.ReConsumeWaitTime) * time.Millisecond)
+		select {
+		case <-c.runCtx.Done():
+			t.Stop()
+			return
+		case <-t.C:
 		}
 	}
 }
@@ -158,9 +160,7 @@ func (c *consumerCli) start(consume sarama.ConsumerGroup) {
 func (c *consumerCli) errorsChannelCallback(consume sarama.ConsumerGroup) {
 	for {
 		select {
-		case <-c.app.BaseContext().Done():
-			return
-		case <-c.done:
+		case <-c.runCtx.Done():
 			return
 		case err := <-consume.Errors():
 			c.app.Error("kafka消费者收到错误消息", zap.Error(err))
@@ -181,11 +181,11 @@ func (c *consumerCli) errorsChannelCallback(consume sarama.ConsumerGroup) {
 }
 
 func (c *consumerCli) Close() error {
-	close(c.done)
-
 	if c.Disable {
 		return nil
 	}
+
+	c.runCancel()
 
 	var wg sync.WaitGroup
 	wg.Add(len(c.consumers))

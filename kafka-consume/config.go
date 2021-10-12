@@ -33,6 +33,8 @@ const (
 	defaultConsumeCount = 1
 	// 默认通道缓冲数
 	defaultChannelBufferSize = 256
+	// 默认消费失败后重新消费等待时间
+	defaultReConsumeWaitTime = 1000
 )
 
 type ServiceConfig struct {
@@ -50,6 +52,7 @@ type ServiceConfig struct {
 	IsolationLevel           string // 隔离级别, ReadUncommitted, ReadCommitted
 	ConsumeCount             int    // 消费者数量, 会为消费者组创建多个消费者进行消费, 建议设置为topic的分区数
 	ChannelBufferSize        int    // 通道缓冲数, 要在内部和外部通道中缓冲的事件数量
+	ReConsumeWaitTime        int64  // 消费失败后重新消费等待时间(毫秒)
 	kConf                    *sarama.Config
 }
 
@@ -63,6 +66,9 @@ func newConfig() *ServiceConfig {
 }
 
 func (conf *ServiceConfig) Check() error {
+	if conf.Address == "" {
+		return errors.New("address为空")
+	}
 	if conf.ReadTimeout <= 0 {
 		conf.ReadTimeout = defaultReadTimeout
 	}
@@ -96,8 +102,8 @@ func (conf *ServiceConfig) Check() error {
 	if conf.ChannelBufferSize <= 0 {
 		conf.ChannelBufferSize = defaultChannelBufferSize
 	}
-	if conf.Address == "" {
-		return errors.New("address为空")
+	if conf.ReConsumeWaitTime < 1 {
+		conf.ReConsumeWaitTime = defaultReConsumeWaitTime
 	}
 	return nil
 }
