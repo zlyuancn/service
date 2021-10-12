@@ -23,8 +23,6 @@ const (
 	defaultMaxMessageBytes = 1048576
 	// 默认消息最大处理时间(毫秒)
 	defaultMaxProcessingTime = 100
-	// 默认启用Errors通道
-	defaultEnabledErrorsChannel = false
 	// 默认偏移初始化
 	defaultOffsetInitial = "oldest"
 	// 默认隔离级别
@@ -47,7 +45,6 @@ type ServiceConfig struct {
 	RetryInterval            int    // 从分区读取失败后重试间隔时间(毫秒)
 	MaxMessageBytes          int32  // 消息的最大允许大小(字节)
 	MaxProcessingTime        int    // 消息最大处理时间(毫秒)
-	EnabledErrorsChannel     bool   // 启用Errors通道, 如果启用, 必须循环从这个通道读取数据以防止死锁. (默认关闭)
 	OffsetInitial            string // 找不到消费者组偏移记录时进行偏移初始化, newest 表示新的消费者不会消费以前的数据, oldest 表示新的消费者会从能消费的旧数据开始消费
 	IsolationLevel           string // 隔离级别, ReadUncommitted, ReadCommitted
 	ConsumeCount             int    // 消费者数量, 会为消费者组创建多个消费者进行消费, 建议设置为topic的分区数
@@ -58,10 +55,9 @@ type ServiceConfig struct {
 
 func newConfig() *ServiceConfig {
 	return &ServiceConfig{
-		KafkaVersion:         defaultKafkaVersion,
-		EnabledErrorsChannel: defaultEnabledErrorsChannel,
-		OffsetInitial:        defaultOffsetInitial,
-		IsolationLevel:       defaultIsolationLevel,
+		KafkaVersion:   defaultKafkaVersion,
+		OffsetInitial:  defaultOffsetInitial,
+		IsolationLevel: defaultIsolationLevel,
 	}
 }
 

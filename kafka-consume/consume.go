@@ -77,9 +77,7 @@ func (c *consumerCli) Start() error {
 	}
 
 	for _, consume := range c.consumers {
-		if c.conf.EnabledErrorsChannel {
-			go c.errorsChannelCallback(consume)
-		}
+		go c.errorsChannelCallback(consume)
 		go c.start(consume)
 	}
 
@@ -104,7 +102,7 @@ func (c *consumerCli) makeConsumer() (sarama.ConsumerGroup, error) {
 	kConf.Consumer.Retry.Backoff = time.Duration(c.conf.RetryInterval) * time.Millisecond
 	kConf.Consumer.Fetch.Max = c.conf.MaxMessageBytes
 	kConf.Consumer.MaxProcessingTime = time.Duration(c.conf.MaxProcessingTime)
-	kConf.Consumer.Return.Errors = c.conf.EnabledErrorsChannel // 如果启用了该选项，未交付的消息将在Errors通道上返回，包括error
+	kConf.Consumer.Return.Errors = true // 如果启用了该选项，未交付的消息将在Errors通道上返回，包括error
 	switch strings.ToLower(c.conf.OffsetInitial) {
 	case "oldest":
 		kConf.Consumer.Offsets.Initial = sarama.OffsetOldest
