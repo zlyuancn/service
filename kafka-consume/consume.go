@@ -11,6 +11,7 @@ import (
 	"github.com/zly-app/zapp/core"
 	"github.com/zly-app/zapp/pkg/utils"
 	"go.uber.org/zap"
+	"golang.org/x/net/proxy"
 )
 
 type Context struct {
@@ -90,6 +91,18 @@ func (c *consumerCli) makeConsumer() (sarama.ConsumerGroup, error) {
 	kConf.Net.DialTimeout = time.Duration(c.conf.DialTimeout) * time.Millisecond
 	kConf.Net.ReadTimeout = time.Duration(c.conf.ReadTimeout) * time.Millisecond
 	kConf.Net.WriteTimeout = time.Duration(c.conf.WriteTimeout) * time.Millisecond
+	if c.conf.ProxyAddress != "" {
+		kConf.Net.Proxy.Enable = true
+		var auth *proxy.Auth
+		if c.conf.ProxyUser != "" {
+			auth = &proxy.Auth{User: c.conf.ProxyUser, Password: c.conf.ProxyPassword}
+		}
+		d, err := proxy.SOCKS5("tcp", c.conf.ProxyAddress, auth, nil)
+		if err != nil {
+			return nil, fmt.Errorf("无法创建代理连接器: %v", err)
+		}
+		kConf.Net.Proxy.Dialer = d
+	}
 
 	switch strings.ToLower(c.conf.PartitionBalanceStrategy) {
 	case "sticky":

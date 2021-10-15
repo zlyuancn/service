@@ -50,7 +50,11 @@ type ServiceConfig struct {
 	ConsumeCount             int    // 消费者数量, 会为消费者组创建多个消费者进行消费, 建议设置为topic的分区数
 	ChannelBufferSize        int    // 通道缓冲数, 要在内部和外部通道中缓冲的事件数量
 	ReConsumeWaitTime        int64  // 消费失败后重新消费等待时间(毫秒)
-	kConf                    *sarama.Config
+	ProxyAddress             string // 代理地址, 支持 socks5, socks5h
+	ProxyUser                string // 代理用户名
+	ProxyPassword            string // 代理用户的密码
+
+	kConf *sarama.Config
 }
 
 func newConfig() *ServiceConfig {
