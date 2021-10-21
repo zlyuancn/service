@@ -22,15 +22,17 @@ import (
 	"github.com/zly-app/service/api/validator"
 )
 
+type IrisContext = iris_context.Context
+
 type Context struct {
-	*iris_context.Context // 原始 iris.Context
+	*IrisContext // 原始 iris.Context
 	core.ILogger
 	OpenTraceSpan opentracing.Span // 链路追踪跨度
 }
 
 func makeContext(ctx iris.Context) *Context {
 	return &Context{
-		Context:       ctx,
+		IrisContext:   ctx,
 		ILogger:       utils.Context.MustGetLoggerFromIrisContext(ctx),
 		OpenTraceSpan: utils.Context.MustGetOpenTraceSpanFromIrisContext(ctx),
 	}
@@ -61,5 +63,5 @@ func (c *Context) Bind(a interface{}) error {
 
 // 试图解析并返回真实客户端的请求IP
 func (c *Context) RemoteAddr() string {
-	return utils.Context.GetRemoteIP(c.Context)
+	return utils.Context.GetRemoteIP(c.IrisContext)
 }
