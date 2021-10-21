@@ -194,8 +194,8 @@ func loggerMiddleware(app core.IApp) iris.Handler {
 		span.SetTag("error", true)
 		span.SetTag("panic", true)
 		span.SetTag("handler_name", handlerName)
-		span.LogFields(open_log.Error(err))
-		span.LogFields(open_log.String("detail", strings.Join(panicErrInfos[1:], "\n")))
+		span.SetTag("err", err.Error())
+		span.LogFields(open_log.String("detail", panicErrDetail))
 
 		msgBuff.WriteString("panic:\n")
 		msgBuff.WriteString("  Recovered from a route's Handler: ")
@@ -340,13 +340,14 @@ func loggerMiddlewareWithJson(app core.IApp) iris.Handler {
 		span.SetTag("error", true)
 		span.SetTag("panic", true)
 		span.SetTag("handler_name", handlerName)
-		span.LogFields(open_log.Error(err))
-		span.LogFields(open_log.String("detail", strings.Join(panicErrInfos[1:], "\n")))
+		span.SetTag("err", err.Error())
+		span.LogFields(open_log.String("detail", panicErrDetail))
+
 		fields = append(fields,
 			zap.Bool("panic", true),
 			zap.String("handler_name", handlerName),
-			zap.String("err", panicErrInfos[0]),
-			zap.Strings("detail", panicErrInfos[1:]),
+			zap.String("err", err.Error()),
+			zap.Strings("detail", panicErrInfos),
 		)
 		log.Error(fields...)
 
