@@ -19,6 +19,7 @@ import (
 	"github.com/kataras/iris/v12"
 	iris_context "github.com/kataras/iris/v12/context"
 	"github.com/opentracing/opentracing-go"
+	open_log "github.com/opentracing/opentracing-go/log"
 	app_config "github.com/zly-app/zapp/config"
 	app_utils "github.com/zly-app/zapp/pkg/utils"
 	"go.uber.org/zap"
@@ -141,7 +142,7 @@ func loggerMiddleware(app core.IApp) iris.Handler {
 				body, _ := ctx.GetBody()
 				bodyText = string(body)
 			}
-			span.SetTag("body", bodyText)
+			span.LogFields(open_log.String("body", bodyText))
 			msgBuff.WriteString("body:")
 			msgBuff.WriteString(bodyText)
 			msgBuff.WriteString("\n\n")
@@ -165,7 +166,7 @@ func loggerMiddleware(app core.IApp) iris.Handler {
 					result, _ = jsoniter.ConfigCompatibleWithStandardLibrary.MarshalToString(v)
 				}
 			}
-			span.SetTag("result", result)
+			span.LogFields(open_log.String("result", result))
 			if isDebug && config.Conf.LogApiResultInDevelop {
 				msgBuff.WriteString("result: ")
 				msgBuff.WriteString(result)
@@ -178,7 +179,7 @@ func loggerMiddleware(app core.IApp) iris.Handler {
 		// error
 		if !hasPanic {
 			span.SetTag("error", true)
-			span.SetTag("err", err.Error())
+			span.LogFields(open_log.Error(err))
 			msgBuff.WriteString("err: ")
 			msgBuff.WriteString(err.Error())
 			msgBuff.WriteString("\n\n")
@@ -193,8 +194,8 @@ func loggerMiddleware(app core.IApp) iris.Handler {
 		span.SetTag("error", true)
 		span.SetTag("panic", true)
 		span.SetTag("handler_name", handlerName)
-		span.SetTag("err", panicErrInfos[0])
-		span.SetTag("detail", strings.Join(panicErrInfos[1:], "\n"))
+		span.LogFields(open_log.Error(err))
+		span.LogFields(open_log.String("detail", strings.Join(panicErrInfos[1:], "\n")))
 
 		msgBuff.WriteString("panic:\n")
 		msgBuff.WriteString("  Recovered from a route's Handler: ")
@@ -293,7 +294,7 @@ func loggerMiddlewareWithJson(app core.IApp) iris.Handler {
 				body, _ := ctx.GetBody()
 				bodyText = string(body)
 			}
-			span.SetTag("body", bodyText)
+			span.LogFields(open_log.String("body", bodyText))
 			fields = append(fields, zap.String("body", bodyText))
 		}
 
@@ -315,7 +316,7 @@ func loggerMiddlewareWithJson(app core.IApp) iris.Handler {
 					result, _ = jsoniter.ConfigCompatibleWithStandardLibrary.MarshalToString(v)
 				}
 			}
-			span.SetTag("result", result)
+			span.LogFields(open_log.String("result", result))
 			if isDebug && config.Conf.LogApiResultInDevelop {
 				fields = append(fields, zap.Any("result", ctx.Values().Get("result")))
 			}
@@ -339,8 +340,8 @@ func loggerMiddlewareWithJson(app core.IApp) iris.Handler {
 		span.SetTag("error", true)
 		span.SetTag("panic", true)
 		span.SetTag("handler_name", handlerName)
-		span.SetTag("err", panicErrInfos[0])
-		span.SetTag("detail", strings.Join(panicErrInfos[1:], "\n"))
+		span.LogFields(open_log.Error(err))
+		span.LogFields(open_log.String("detail", strings.Join(panicErrInfos[1:], "\n")))
 		fields = append(fields,
 			zap.Bool("panic", true),
 			zap.String("handler_name", handlerName),
