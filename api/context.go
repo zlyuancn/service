@@ -9,11 +9,11 @@
 package api
 
 import (
+	"context"
 	"reflect"
 
 	"github.com/kataras/iris/v12"
 	iris_context "github.com/kataras/iris/v12/context"
-	"github.com/opentracing/opentracing-go"
 	"go.uber.org/zap"
 
 	"github.com/zly-app/zapp/core"
@@ -27,14 +27,14 @@ type IrisContext = iris_context.Context
 type Context struct {
 	*IrisContext // 原始 iris.Context
 	core.ILogger
-	OpenTraceSpan opentracing.Span // 链路追踪跨度
+	ctx context.Context
 }
 
 func makeContext(ctx iris.Context) *Context {
 	return &Context{
-		IrisContext:   ctx,
-		ILogger:       utils.Context.MustGetLoggerFromIrisContext(ctx),
-		OpenTraceSpan: utils.Context.MustGetOpenTraceSpanFromIrisContext(ctx),
+		IrisContext: ctx,
+		ILogger:     utils.Context.MustGetLoggerFromIrisContext(ctx),
+		ctx:         utils.Context.MustGetContextFromIrisContext(ctx),
 	}
 }
 
@@ -64,4 +64,9 @@ func (c *Context) Bind(a interface{}) error {
 // 试图解析并返回真实客户端的请求IP
 func (c *Context) RemoteAddr() string {
 	return utils.Context.GetRemoteIP(c.IrisContext)
+}
+
+// 获取ctx, 这个ctx基于app.BaseContext并带链路追踪跨度
+func (c *Context) Context() context.Context {
+	return c.ctx
 }

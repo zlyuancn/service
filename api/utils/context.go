@@ -9,12 +9,11 @@
 package utils
 
 import (
+	"context"
 	"net"
 	"strings"
 
 	"github.com/kataras/iris/v12"
-	"github.com/opentracing/opentracing-go"
-
 	"github.com/zly-app/zapp/core"
 )
 
@@ -25,8 +24,8 @@ type contextUtil struct{}
 // 日志保存字段
 const LoggerSaveFieldKey = "_api_logger"
 
-// 链路追踪跨度保存字段
-const OpenTraceSpanSaveFieldKey = "_open_trace_span"
+// 上下文保存字段
+const ContextFieldKey = "_ctx"
 
 // 将log保存在iris上下文中
 func (c *contextUtil) SaveLoggerToIrisContext(ctx iris.Context, log core.ILogger) {
@@ -38,14 +37,14 @@ func (c *contextUtil) MustGetLoggerFromIrisContext(ctx iris.Context) core.ILogge
 	return ctx.Values().Get(LoggerSaveFieldKey).(core.ILogger)
 }
 
-// 将链路追踪跨度保存在iris上下文中
-func (c *contextUtil) SaveOpenTraceSpanToIrisContext(ctx iris.Context, span opentracing.Span) {
-	ctx.Values().Set(OpenTraceSpanSaveFieldKey, span)
+// 将context保存在iris上下文中
+func (c *contextUtil) SaveContextToIrisContext(ctx iris.Context, context context.Context) {
+	ctx.Values().Set(ContextFieldKey, context)
 }
 
-// 从iris上下文中获取链路追踪跨度, 如果失败会panic
-func (c *contextUtil) MustGetOpenTraceSpanFromIrisContext(ctx iris.Context) opentracing.Span {
-	return ctx.Values().Get(OpenTraceSpanSaveFieldKey).(opentracing.Span)
+// 从iris上下文中获取context, 如果失败会panic
+func (c *contextUtil) MustGetContextFromIrisContext(ctx iris.Context) context.Context {
+	return ctx.Values().Get(ContextFieldKey).(context.Context)
 }
 
 // 试图解析并返回真实客户端的请求IP
