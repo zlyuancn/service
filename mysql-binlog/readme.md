@@ -55,3 +55,30 @@ DumpExecutionPath=""
 # 忽略wkb数据解析错误, 一般为POINT, GEOMETRY类型
 IgnoreWKBDataParseError=true
 ```
+
+# `Record`说明
+
+## Record 结构
+
+```go
+type Record struct {
+	Action    string                 `json:"action"`
+	Old       map[string]interface{} `json:"old"`
+	New       map[string]interface{} `json:"new"`
+	DbName    string                 `json:"db_name"`
+	TableName string                 `json:"table_name"`
+	Timestamp uint32                 `json:"timestamp"`
+}
+```
+
+1. `Action`表示动作, 只会是`update`,`insert`,`delete`这些值中的一个.
+
+   ```
+   当为 update 时,  Old 字段值为原始数据, New 的值为新数据.
+   当为 insert 时,  Old 的值为 nil, New 字段值为新增的数据.
+   当为 delete 时,  Old 字段值为原始数据, New 的值为 nil.
+   ```
+
+2. `DbName`表示数据库名.
+3. `TableName`表示表名.
+4. `Timestamp`表示数据发送改变时的时间戳, 单位为秒
