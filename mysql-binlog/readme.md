@@ -82,3 +82,106 @@ type Record struct {
 2. `DbName`表示数据库名.
 3. `TableName`表示表名.
 4. `Timestamp`表示数据发送改变时的时间戳, 单位为秒
+
+## 字段映射
+
+### 数字
+
+| mysql字段          | go类型  |
+| ------------------ | ------- |
+| TINYINT            | int8    |
+| TINYINT UNSIGNED   | uint8   |
+| SMALLINT           | int16   |
+| SMALLINT UNSIGNED  | uint16  |
+| MEDIUMINT          | int32   |
+| MEDIUMINT UNSIGNED | uint32  |
+| INT                | int32   |
+| INT UNSIGNED       | uint32  |
+| BIGINT             | int64   |
+| BIGINT UNSIGNED    | uint64  |
+| FLOAT              | float32 |
+| DOUBLE             | float64 |
+| DECIMAL            | float64 |
+
+
+### 字符串
+
+| mysql字段                                                                                 | go类型 |
+| ----------------------------------------------------------------------------------------- | ------ |
+| CHAR, VARCHAR, TINYBLOB, BLOB, MEDIUMBLOB, LONGBLOB, TINYTEXT, TEXT, MEDIUMTEXT, LONGTEXT | string |
+
+
+### 二进制
+
+| mysql字段 | go类型               |
+| --------- | -------------------- |
+| BINARY    | base64编码后的string |
+| VARBINARY | base64编码后的string |
+
+
+### 时间
+
+| mysql字段 | go类型 |
+| --------- | ------ |
+| DATE      | string |
+| TIME      | string |
+| YEAR      | int    |
+| DATETIME  | string |
+| TIMESTAMP | string |
+
+### 其它
+
+
+| mysql字段 | go类型              |
+| --------- | ------------------- |
+| JSON      | string              |
+| ENUM      | int64               |
+| SET       | int64               |
+| BIT       | int64               |
+| POINT     | []float64{x, y}     |
+| GEOMETRY  | geojson格式的string |
+
+## Unmarshal
+
+`UnmarshalOld` 将 `Old` 字段内容解析到自定义结构中.
+`UnmarshalNew` 将 `New` 字段内容解析到自定义结构中.
+
+必须传入一个带指针的结构体, 字段对应优先对比 `scan` 标签的值, 无 `scan` 标签时对比 `json` 标签的值, 否则以结构体的字段名匹配. 如果标签值为空或 `-` 则忽略该字段.
+
+### 将值定义为指定类型
+
+这样做可以帮助程序识别你的原始数据类型, 做到精确的转换
+
+```go
+type Table struct {
+	A string `scan:"a,string"` // 定义为string类型
+	B struct{
+		B1 string `json:"b1"`
+		B2 string `json:"b2"`
+	} `scan:"b,json"` // 定义为json类型
+	C string `scan:"c,point"`  // 定义为point类型
+	D string `scan:"d,binary"` // 定义为binary类型
+}
+```
+
+1. `string` 要求原始数据的值必须是 `string` 或 `nil`, 解析器会调用 `zstr.Scan` 将数据解析到该字段中.
+2. `json` 要求原始数据的值必须是 `string` 或 `nil`, 解析器会调用 `jsoniter.UnmarshalFromString` 方法将数据解析到该字段中.
+3. `point` 要求原始数据的值必须是长度为 2 的 `[]float64` 或 `[]interface{}` 或 `nil`, 字段类型必须是切片, 解析器会对原始数据内的每一个值调用 `zstr.ScanAny` 解析后放入切片中.
+4. `binary` 要求原始数据必须是 base64编码后的`string` 或 `nil`, 字段类型必须是 `string` 或 `[]byte`.
+
+### 自定义解析
+
+字段类型如果实现了以下接口, 则调用该接口的方法以实现自定义解析功能.
+
+```go
+type BinaryUnmarshaler interface {
+	UnmarshalBinary(data []byte) error
+}
+
+type AnyUnmarshaler interface {
+	UnmarshalAny(any interface{}) error
+}
+```
+
+1. 对于 `string` 和 `json` 和 `binary` 定义. `AnyUnmarshaler` 接口中的 `UnmarshalAny` 方法中 `any` 的值一定是 `string`
+2. 对于 `point` 定义. `AnyUnmarshaler` 接口中的 `UnmarshalAny` 方法中 `any` 的值一定是长度为 2 的 `[]float64`. 并且不支持 `BinaryUnmarshaler` 接口.
