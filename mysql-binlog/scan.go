@@ -132,21 +132,31 @@ func scanFieldData(a interface{}, outPtr interface{}, outValue *reflect.Value, o
 		return scanJsonType(a, outPtr)
 	}
 	if tf.point {
-		temp, ok := a.([]interface{})
-		if !ok { // []interface{}
-			return fmt.Errorf("point标签的原始数据必须是[]float64, 但是得到%T", a)
-		}
-		if len(temp) != 2 {
-			return fmt.Errorf("point标签的原始数据必须是长度为2的[]float64, 但是收到长度%d", len(temp))
-		}
+		var f64s []float64
 
-		f64s := make([]float64, 2)
-		for i, tt := range temp {
-			if v, ok := tt.(float64); ok { // float64
-				f64s[i] = v
-				continue
+		temp, ok := a.([]interface{})
+		if ok {
+			if len(temp) != 2 {
+				return fmt.Errorf("point标签的原始数据必须是长度为2的[]float64或[]interface{}, 但是收到长度%d", len(temp))
 			}
-			return fmt.Errorf("point标签的原始数据必须是[]float64, 但是切片中其中一个类型为%T", tt)
+
+			f64s = make([]float64, 2)
+			for i, tt := range temp {
+				if v, ok := tt.(float64); ok { // float64
+					f64s[i] = v
+					continue
+				}
+				return fmt.Errorf("point标签的原始数据必须是[]float64或[]interface{}, 但是切片中其中一个类型为%T", tt)
+			}
+		} else {
+			temp, ok := a.([]float64)
+			if !ok {
+				return fmt.Errorf("point标签的原始数据必须是[]float64或[]interface{}, 但是得到%T", a)
+			}
+			if len(temp) != 2 {
+				return fmt.Errorf("point标签的原始数据必须是长度为2的[]float64或[]interface{}, 但是收到长度%d", len(temp))
+			}
+			f64s = append(make([]float64, 0, 2), temp...)
 		}
 
 		switch t := outPtr.(type) {
