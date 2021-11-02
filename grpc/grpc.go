@@ -11,6 +11,7 @@ package grpc
 import (
 	"context"
 	"net"
+	"reflect"
 	"time"
 
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
@@ -23,6 +24,9 @@ import (
 )
 
 type GrpcServer = grpc.Server
+
+var typeOfComponentConnInterface = reflect.TypeOf((*core.IComponent)(nil)).Elem()
+var typeOfGrpcServer = reflect.TypeOf((*GrpcServer)(nil))
 
 type RegistryGrpcServiceFunc = func(c core.IComponent, server *GrpcServer)
 
@@ -62,13 +66,31 @@ func NewGrpcService(app core.IApp) core.IService {
 }
 
 func (g *GrpcService) Inject(a ...interface{}) {
+	cValue := reflect.ValueOf(g.app.GetComponent())
+	serverValue := reflect.ValueOf(g.server)
 	for _, v := range a {
-		fn, ok := v.(RegistryGrpcServiceFunc)
-		if !ok {
-			g.app.Fatal("Grpc服务注入类型错误, 它必须能转为 grpc.RegistryGrpcServiceFunc")
+		vType := reflect.TypeOf(v)
+		if vType.Kind() != reflect.Func {
+			g.app.Fatal("grpc服务端注入参数必须是func")
+			return
+		}
+		if vType.NumIn() != 2 {
+			g.app.Fatal("grpc服务端注入func入参为2个")
+			return
+		}
+		arg0 := vType.In(0)
+		if !arg0.AssignableTo(typeOfComponentConnInterface) {
+			g.app.Fatal("注入的func第1个入参必须能转为 core.IComponent")
+			return
+		}
+		arg1 := vType.In(1)
+		if !arg1.AssignableTo(typeOfGrpcServer) {
+			g.app.Fatal("注入的func第2个入参必须能转为 *grpc.GrpcServer")
+			return
 		}
 
-		fn(g.app.GetComponent(), g.server)
+		vValue := reflect.ValueOf(v)
+		vValue.Call([]reflect.Value{cValue, serverValue})
 	}
 }
 

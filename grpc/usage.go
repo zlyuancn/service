@@ -34,6 +34,6 @@ func WithService() zapp.Option {
 }
 
 // 注册服务对象
-func RegistryServerObject(fn RegistryGrpcServiceFunc) {
+func RegistryServerObject(fn interface{}) {
 	zapp.App().InjectService(nowServiceType, fn)
 }

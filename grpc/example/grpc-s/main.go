@@ -3,11 +3,12 @@ package main
 import (
 	"context"
 
-	"github.com/zly-app/service/grpc"
 	"github.com/zly-app/zapp"
 	"github.com/zly-app/zapp/core"
 
-	"grpc-s/pb/hello"
+	"github.com/zly-app/service/grpc"
+
+	"github.com/zly-app/service/grpc/example/grpc-s/pb/hello"
 )
 
 var _ hello.HelloServiceServer = (*HelloService)(nil)
