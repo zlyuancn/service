@@ -22,6 +22,4 @@ grpc.RegistryServerObject(...)  # 服务注入(注册服务实体)
 [services.grpc]
 # bind地址
 Bind = "localhost:3000"
-# 心跳时间(毫秒), 默认20000
-HeartbeatTime = 20000
 ```

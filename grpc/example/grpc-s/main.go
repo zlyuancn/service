@@ -5,6 +5,7 @@ import (
 
 	"github.com/zly-app/zapp"
 	"github.com/zly-app/zapp/core"
+	"go.uber.org/zap"
 
 	"github.com/zly-app/service/grpc"
 
@@ -16,6 +17,8 @@ var _ hello.HelloServiceServer = (*HelloService)(nil)
 type HelloService struct{}
 
 func (h *HelloService) Hello(ctx context.Context, req *hello.HelloReq) (*hello.HelloResp, error) {
+	session := grpc.GetSession(ctx) // 获取session
+	session.Info("收到请求", zap.String("req", req.Msg))
 	return &hello.HelloResp{Msg: req.GetMsg() + "world"}, nil
 }
 
