@@ -128,14 +128,14 @@ func UnaryServerLogInterceptor(app core.IApp) grpc.UnaryServerInterceptor {
 		startTime := time.Now()
 		log.Debug("grpc.request", zap.Any("req", req))
 
-		resp, err := handler(ctx, req)
+		reply, err := handler(ctx, req)
 		if err != nil {
 			log.Error("grpc.response", zap.String("latency", time.Since(startTime).String()), zap.Error(err))
 		} else {
-			log.Debug("grpc.response", zap.String("latency", time.Since(startTime).String()), zap.Any("resp", resp))
+			log.Debug("grpc.response", zap.String("latency", time.Since(startTime).String()), zap.Any("reply", reply))
 		}
 
-		return resp, err
+		return reply, err
 	}
 }
 
@@ -174,6 +174,13 @@ func UnaryServerOpenTraceInterceptor(ctx context.Context, req interface{}, info 
 	defer span.Finish()
 	ctx = opentracing.ContextWithSpan(ctx, span)
 
-	resp, err := handler(ctx, req)
-	return resp, err
+	span.SetTag("req", req)
+	reply, err := handler(ctx, req)
+	if err != nil {
+		span.SetTag("error", true)
+		span.SetTag("err", err.Error())
+	} else {
+		span.SetTag("reply", reply)
+	}
+	return reply, err
 }
