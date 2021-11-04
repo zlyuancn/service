@@ -8,11 +8,33 @@
 
 package grpc
 
-// 默认心跳时间
-const defaultHeartbeatTime = 20000
+const (
+	// 默认bind
+	defaultBind = ":3000"
+	// 默认心跳时间
+	defaultHeartbeatTime = 20000
+	// 默认启用开放链路追踪
+	defaultEnableOpenTrace = false
+)
 
 // grpc服务配置
 type Config struct {
-	Bind          string // bind地址
-	HeartbeatTime int    // 心跳时间(毫秒), 默认20000
+	Bind            string // bind地址
+	HeartbeatTime   int    // 心跳时间(毫秒), 默认20000
+	EnableOpenTrace bool   // 启用开放链路追踪
+}
+
+func newConfig() *Config {
+	return &Config{
+		EnableOpenTrace: defaultEnableOpenTrace,
+	}
+}
+
+func (conf *Config) Check() {
+	if conf.Bind == "" {
+		conf.Bind = defaultBind
+	}
+	if conf.HeartbeatTime < 1000 {
+		conf.HeartbeatTime = defaultHeartbeatTime
+	}
 }

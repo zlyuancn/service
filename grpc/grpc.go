@@ -17,10 +17,13 @@ import (
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
 	grpc_recovery "github.com/grpc-ecosystem/go-grpc-middleware/recovery"
 	grpc_ctxtags "github.com/grpc-ecosystem/go-grpc-middleware/tags"
+	"github.com/opentracing/opentracing-go"
 	"github.com/zly-app/zapp/core"
+	"github.com/zly-app/zapp/logger"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/keepalive"
+	"google.golang.org/grpc/metadata"
 )
 
 type GrpcServer = grpc.Server
@@ -37,22 +40,25 @@ type GrpcService struct {
 }
 
 func NewGrpcService(app core.IApp) core.IService {
-	var conf Config
-	err := app.GetConfig().ParseServiceConfig(nowServiceType, &conf)
+	conf := newConfig()
+	err := app.GetConfig().ParseServiceConfig(nowServiceType, conf, true)
 	if err != nil {
 		app.Fatal("创建服务失败", zap.String("serviceType", string(nowServiceType)), zap.Error(err))
 	}
+	conf.Check()
 
-	if conf.HeartbeatTime <= 0 {
-		conf.HeartbeatTime = defaultHeartbeatTime
+	chainUnaryClientList := []grpc.UnaryServerInterceptor{
+		UnaryServerLogInterceptor(app),         // 日志
+		grpc_ctxtags.UnaryServerInterceptor(),  // 设置标记
+		grpc_recovery.UnaryServerInterceptor(), // panic恢复
+	}
+
+	if conf.EnableOpenTrace {
+		chainUnaryClientList = append(chainUnaryClientList, UnaryServerOpenTraceInterceptor)
 	}
 
 	server := grpc.NewServer(
-		grpc.UnaryInterceptor(grpc_middleware.ChainUnaryServer(
-			UnaryServerLogInterceptor(app),         // 日志
-			grpc_ctxtags.UnaryServerInterceptor(),  // 设置标记
-			grpc_recovery.UnaryServerInterceptor(), // panic恢复
-		)),
+		grpc.UnaryInterceptor(grpc_middleware.ChainUnaryServer(chainUnaryClientList...)),
 		grpc.KeepaliveParams(keepalive.ServerParameters{
 			Time: time.Duration(conf.HeartbeatTime) * time.Millisecond, // 心跳
 		}),
@@ -61,7 +67,7 @@ func NewGrpcService(app core.IApp) core.IService {
 	return &GrpcService{
 		app:    app,
 		server: server,
-		conf:   &conf,
+		conf:   conf,
 	}
 }
 
@@ -128,4 +134,43 @@ func UnaryServerLogInterceptor(app core.IApp) grpc.UnaryServerInterceptor {
 
 		return resp, err
 	}
+}
+
+type TextMapCarrier struct {
+	metadata.MD
+}
+
+func (t TextMapCarrier) ForeachKey(handler func(key, val string) error) error {
+	for k, v := range t.MD {
+		for _, vv := range v {
+			if err := handler(k, vv); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+// 开放链路追踪hook
+func UnaryServerOpenTraceInterceptor(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
+	// 取出元数据
+	md, ok := metadata.FromIncomingContext(ctx)
+	if ok {
+		// 如果对元数据修改必须使用它的副本
+		md = md.Copy()
+	}
+
+	// 从元数据中取出span
+	carrier := TextMapCarrier{md}
+	parentSpan, err := opentracing.GlobalTracer().Extract(opentracing.TextMap, carrier)
+	if err != nil {
+		logger.Log.Error("grpc trace extract err", zap.Error(err))
+	}
+
+	span := opentracing.StartSpan(info.FullMethod, opentracing.ChildOf(parentSpan))
+	defer span.Finish()
+	ctx = opentracing.ContextWithSpan(ctx, span)
+
+	resp, err := handler(ctx, req)
+	return resp, err
 }
