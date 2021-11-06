@@ -42,7 +42,8 @@ type IEventHandler interface {
 	OnRow(records []*Record)
 	// 要求记录位置同步
 	//
-	// force会在表改变时设为true, 此时要求必须同步成功, 如果同步失败会结束服务
+	// force会在表改变时设为true, 此时要求必须同步成功, 如果同步失败会结束服务.
+	// 服务结束之前会自动再调用一次这个方法.
 	OnPosSynced(binlogName string, pos uint32, force bool) error
 }
 
