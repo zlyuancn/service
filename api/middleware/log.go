@@ -168,7 +168,7 @@ func loggerMiddleware(app core.IApp) iris.Handler {
 				}
 			}
 			span.LogFields(open_log.String("result", result))
-			if isDebug && config.Conf.LogApiResultInDevelop {
+			if (isDebug && config.Conf.LogApiResultInDevelop) || (!isDebug && config.Conf.LogApiResultInProd) {
 				msgBuff.WriteString("result: ")
 				msgBuff.WriteString(result)
 				msgBuff.WriteString("\n\n")
@@ -319,7 +319,7 @@ func loggerMiddlewareWithJson(app core.IApp) iris.Handler {
 				}
 			}
 			span.LogFields(open_log.String("result", result))
-			if isDebug && config.Conf.LogApiResultInDevelop {
+			if (isDebug && config.Conf.LogApiResultInDevelop) || (!isDebug && config.Conf.LogApiResultInProd) {
 				fields = append(fields, zap.Any("result", ctx.Values().Get("result")))
 			}
 			log.Debug(fields...)

@@ -27,6 +27,7 @@ type Config struct {
 	IPWithNginxForwarded          bool   // 适配nginx的Forwarded获取ip, 优先级高于nginx的Real
 	IPWithNginxReal               bool   // 适配nginx的Real获取ip, 优先级高于sock连接的ip
 	LogApiResultInDevelop         bool   // 在开发环境中输出api结果
+	LogApiResultInProd            bool   // 在生产环境中输出api结果
 	LogApiResultMaxSize           int    // 输出结果最大大小
 	SendDetailedErrorInProduction bool   // 在生产环境发送详细的错误到客户端
 	AlwaysLogHeaders              bool   // 总是输出headers日志, 如果设为false, 只会在出现错误时才会输出headers日志
