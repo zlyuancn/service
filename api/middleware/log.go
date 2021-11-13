@@ -320,7 +320,7 @@ func loggerMiddlewareWithJson(app core.IApp) iris.Handler {
 			}
 			span.LogFields(open_log.String("result", result))
 			if (isDebug && config.Conf.LogApiResultInDevelop) || (!isDebug && config.Conf.LogApiResultInProd) {
-				fields = append(fields, zap.Any("result", ctx.Values().Get("result")))
+				fields = append(fields, zap.String("result", result))
 			}
 			log.Debug(fields...)
 			return
