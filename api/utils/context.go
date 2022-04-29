@@ -15,6 +15,8 @@ import (
 
 	"github.com/kataras/iris/v12"
 	"github.com/zly-app/zapp/core"
+
+	"github.com/zly-app/service/api/config"
 )
 
 var Context = new(contextUtil)
@@ -26,6 +28,9 @@ const LoggerSaveFieldKey = "_api_logger"
 
 // 上下文保存字段
 const ContextFieldKey = "_ctx"
+
+// conf保存字段
+const ConfContextFieldKey = "_conf"
 
 // 将log保存在iris上下文中
 func (c *contextUtil) SaveLoggerToIrisContext(ctx iris.Context, log core.ILogger) {
@@ -45,6 +50,16 @@ func (c *contextUtil) SaveContextToIrisContext(ctx iris.Context, context context
 // 从iris上下文中获取context, 如果失败会panic
 func (c *contextUtil) MustGetContextFromIrisContext(ctx iris.Context) context.Context {
 	return ctx.Values().Get(ContextFieldKey).(context.Context)
+}
+
+// 将conf保存在iris上下文中
+func (c *contextUtil) SaveConfToIrisContext(ctx iris.Context, conf *config.Config) {
+	ctx.Values().Set(ConfContextFieldKey, conf)
+}
+
+// 从iris上下文中获取conf, 如果失败会panic
+func (c *contextUtil) MustGetConfFromIrisContext(ctx iris.Context) *config.Config {
+	return ctx.Values().Get(ConfContextFieldKey).(*config.Config)
 }
 
 // 试图解析并返回真实客户端的请求IP

@@ -8,16 +8,18 @@
 
 package config
 
-var Conf Config
-
 const (
 	// 默认bind
 	defaultBind = ":8080"
+	// 默认适配nginx的Forwarded获取ip
+	defaultIPWithNginxForwarded = true
+	// 默认适配nginx的Real获取ip
+	defaultIPWithNginxReal = true
 	// 默认输出结果最大大小
 	defaultLogApiResultMaxSize = 10240
 	// 输出body最大大小
 	defaultLogBodyMaxSize = 10240
-	// 默认post允许最大数据大小
+	// 默认post允许最大数据大小(32M)
 	defaultPostMaxMemory = 32 << 20
 )
 
@@ -37,7 +39,10 @@ type Config struct {
 }
 
 func NewConfig() *Config {
-	return &Config{}
+	return &Config{
+		IPWithNginxForwarded: defaultIPWithNginxForwarded,
+		IPWithNginxReal:      defaultIPWithNginxReal,
+	}
 }
 
 func (conf *Config) Check() {
@@ -50,7 +55,7 @@ func (conf *Config) Check() {
 	if conf.LogBodyMaxSize < 1 {
 		conf.LogBodyMaxSize = defaultLogBodyMaxSize
 	}
-	if conf.PostMaxMemory <= 0 {
+	if conf.PostMaxMemory < 1 {
 		conf.PostMaxMemory = defaultPostMaxMemory
 	}
 }

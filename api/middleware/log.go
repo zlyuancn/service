@@ -41,15 +41,15 @@ func valuesToTexts(values map[string][]string, sep string) []string {
 	return texts
 }
 
-func LoggerMiddleware(app core.IApp) iris.Handler {
+func LoggerMiddleware(app core.IApp, conf *config.Config) iris.Handler {
 	if app_config.Conf.Config().Frame.Log.Json {
-		return loggerMiddlewareWithJson(app)
+		return loggerMiddlewareWithJson(app, conf)
 	}
-	return loggerMiddleware(app)
+	return loggerMiddleware(app, conf)
 }
 
 // 以文本方式输出
-func loggerMiddleware(app core.IApp) iris.Handler {
+func loggerMiddleware(app core.IApp, conf *config.Config) iris.Handler {
 	isDebug := app_config.Conf.Config().Frame.Debug
 	return func(ctx iris.Context) {
 		startTime := time.Now()
@@ -58,6 +58,9 @@ func loggerMiddleware(app core.IApp) iris.Handler {
 		// log
 		log := app.NewSessionLogger()
 		utils.Context.SaveLoggerToIrisContext(ctx, log)
+
+		// conf
+		utils.Context.SaveConfToIrisContext(ctx, conf)
 
 		// 链路追踪
 		span := opentracing.StartSpan("api")
@@ -120,7 +123,7 @@ func loggerMiddleware(app core.IApp) iris.Handler {
 		}
 
 		// headers
-		if hasErr || config.Conf.AlwaysLogHeaders {
+		if hasErr || conf.AlwaysLogHeaders {
 			headers := valuesToTexts(ctx.Request().Header, ": ")
 			span.SetTag("headers", strings.Join(headers, "\n"))
 			msgBuff.WriteString("headers:\n")
@@ -133,11 +136,11 @@ func loggerMiddleware(app core.IApp) iris.Handler {
 		}
 
 		// body
-		if hasErr || config.Conf.AlwaysLogBody {
+		if hasErr || conf.AlwaysLogBody {
 			var bodyText string
 			if ctx.GetContentTypeRequested() == iris_context.ContentBinaryHeaderValue { // 流
 				bodyText = fmt.Sprintf("body<bytesLen=%d>", ctx.GetContentLength())
-			} else if ctx.GetContentLength() > config.Conf.LogBodyMaxSize { // 超长
+			} else if ctx.GetContentLength() > conf.LogBodyMaxSize { // 超长
 				bodyText = fmt.Sprintf("body<len=%d>", ctx.GetContentLength())
 			} else {
 				body, _ := ctx.GetBody()
@@ -155,7 +158,7 @@ func loggerMiddleware(app core.IApp) iris.Handler {
 			contentType := iris_context.TrimHeaderValue(ctx.ResponseWriter().Header().Get(iris_context.ContentTypeHeaderKey))
 			if contentType == iris_context.ContentBinaryHeaderValue { // 流
 				result = fmt.Sprintf("result<bytesLen=%d>", ctx.ResponseWriter().Written())
-			} else if ctx.ResponseWriter().Written() > config.Conf.LogApiResultMaxSize { // 超长
+			} else if ctx.ResponseWriter().Written() > conf.LogApiResultMaxSize { // 超长
 				result = fmt.Sprintf("result<len=%d>", ctx.ResponseWriter().Written())
 			} else {
 				switch v := ctx.Values().Get("result").(type) {
@@ -168,7 +171,7 @@ func loggerMiddleware(app core.IApp) iris.Handler {
 				}
 			}
 			span.LogFields(open_log.String("result", result))
-			if (isDebug && config.Conf.LogApiResultInDevelop) || (!isDebug && config.Conf.LogApiResultInProd) {
+			if (isDebug && conf.LogApiResultInDevelop) || (!isDebug && conf.LogApiResultInProd) {
 				msgBuff.WriteString("result: ")
 				msgBuff.WriteString(result)
 				msgBuff.WriteString("\n\n")
@@ -211,7 +214,7 @@ func loggerMiddleware(app core.IApp) iris.Handler {
 			"err_code": 1,
 			"err_msg":  "service internal error",
 		}
-		if isDebug || config.Conf.SendDetailedErrorInProduction {
+		if isDebug || conf.SendDetailedErrorInProduction {
 			result["err_msg"] = append(
 				[]string{fmt.Sprintf("Recovered from a route's Handler: %s", handlerName)},
 				panicErrInfos...,
@@ -223,7 +226,7 @@ func loggerMiddleware(app core.IApp) iris.Handler {
 }
 
 // 以json方式输出
-func loggerMiddlewareWithJson(app core.IApp) iris.Handler {
+func loggerMiddlewareWithJson(app core.IApp, conf *config.Config) iris.Handler {
 	isDebug := app_config.Conf.Config().Frame.Debug
 	return func(ctx *iris_context.Context) {
 		startTime := time.Now()
@@ -232,6 +235,9 @@ func loggerMiddlewareWithJson(app core.IApp) iris.Handler {
 		// log
 		log := app.NewSessionLogger()
 		utils.Context.SaveLoggerToIrisContext(ctx, log)
+
+		// conf
+		utils.Context.SaveConfToIrisContext(ctx, conf)
 
 		// 链路追踪
 		span := opentracing.StartSpan("api")
@@ -279,18 +285,18 @@ func loggerMiddlewareWithJson(app core.IApp) iris.Handler {
 		}
 
 		// headers
-		if hasErr || config.Conf.AlwaysLogHeaders {
+		if hasErr || conf.AlwaysLogHeaders {
 			headers := valuesToTexts(ctx.Request().Header, ": ")
 			span.SetTag("headers", strings.Join(headers, "\n"))
 			fields = append(fields, zap.Strings("headers", headers))
 		}
 
 		// body
-		if hasErr || config.Conf.AlwaysLogBody {
+		if hasErr || conf.AlwaysLogBody {
 			var bodyText string
 			if ctx.GetContentTypeRequested() == iris_context.ContentBinaryHeaderValue { // 流
 				bodyText = fmt.Sprintf("body<bytesLen=%d>", ctx.GetContentLength())
-			} else if ctx.GetContentLength() > config.Conf.LogBodyMaxSize { // 超长
+			} else if ctx.GetContentLength() > conf.LogBodyMaxSize { // 超长
 				bodyText = fmt.Sprintf("body<len=%d>", ctx.GetContentLength())
 			} else {
 				body, _ := ctx.GetBody()
@@ -306,7 +312,7 @@ func loggerMiddlewareWithJson(app core.IApp) iris.Handler {
 			contentType := iris_context.TrimHeaderValue(ctx.ResponseWriter().Header().Get(iris_context.ContentTypeHeaderKey))
 			if contentType == iris_context.ContentBinaryHeaderValue { // 流
 				result = fmt.Sprintf("result<bytesLen=%d>", ctx.ResponseWriter().Written())
-			} else if ctx.ResponseWriter().Written() > config.Conf.LogApiResultMaxSize { // 超长
+			} else if ctx.ResponseWriter().Written() > conf.LogApiResultMaxSize { // 超长
 				result = fmt.Sprintf("result<len=%d>", ctx.ResponseWriter().Written())
 			} else {
 				switch v := ctx.Values().Get("result").(type) {
@@ -319,7 +325,7 @@ func loggerMiddlewareWithJson(app core.IApp) iris.Handler {
 				}
 			}
 			span.LogFields(open_log.String("result", result))
-			if (isDebug && config.Conf.LogApiResultInDevelop) || (!isDebug && config.Conf.LogApiResultInProd) {
+			if (isDebug && conf.LogApiResultInDevelop) || (!isDebug && conf.LogApiResultInProd) {
 				fields = append(fields, zap.String("result", result))
 			}
 			log.Debug(fields...)
@@ -358,7 +364,7 @@ func loggerMiddlewareWithJson(app core.IApp) iris.Handler {
 			"err_code": 1,
 			"err_msg":  "service internal error",
 		}
-		if isDebug || config.Conf.SendDetailedErrorInProduction {
+		if isDebug || conf.SendDetailedErrorInProduction {
 			result["err_msg"] = append(
 				[]string{fmt.Sprintf("Recovered from a route's Handler: %s", handlerName)},
 				panicErrInfos...,

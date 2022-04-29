@@ -26,11 +26,12 @@ type Party = iris.Party
 type RegisterApiRouterFunc = func(c core.IComponent, router Party)
 
 type ApiService struct {
-	app core.IApp
+	app  core.IApp
+	conf *config.Config
 	*iris.Application
 }
 
-func NewHttpService(app core.IApp, opts ...Option) core.IService {
+func NewApiService(app core.IApp, conf *config.Config, opts ...Option) *ApiService {
 	// 处理选项
 	o := newOptions(opts...)
 
@@ -38,7 +39,7 @@ func NewHttpService(app core.IApp, opts ...Option) core.IService {
 	irisApp := iris.New()
 	irisApp.Logger().SetLevel("disable") // 关闭默认日志
 	irisApp.Use(
-		middleware.LoggerMiddleware(app),
+		middleware.LoggerMiddleware(app, conf),
 		cors.AllowAll(),
 		middleware.Recover(),
 	)
@@ -52,46 +53,38 @@ func NewHttpService(app core.IApp, opts ...Option) core.IService {
 		irisApp.Use(WrapMiddleware(fn))
 	}
 
-	return &ApiService{app: app, Application: irisApp}
-}
-
-func (a *ApiService) Inject(sc ...interface{}) {
-	for _, h := range sc {
-		fn, ok := h.(RegisterApiRouterFunc)
-		if !ok {
-			a.app.Fatal("api服务注入类型错误, 它必须能转为 api.RegisterApiRouterFunc")
-		}
-
-		fn(a.app.GetComponent(), a.Party("/"))
+	return &ApiService{
+		app:         app,
+		conf:        conf,
+		Application: irisApp,
 	}
 }
 
 func (a *ApiService) Start() error {
-	conf := config.NewConfig()
-	err := a.app.GetConfig().ParseServiceConfig(nowServiceType, conf)
-	if err != nil {
-		return err
-	}
-	conf.Check()
-	config.Conf = *conf
-
-	a.app.Debug("正在启动api服务", zap.String("bind", conf.Bind))
+	a.app.Debug("正在启动api服务", zap.String("bind", a.conf.Bind))
 	opts := []iris.Configurator{
-		iris.WithoutBodyConsumptionOnUnmarshal,     // 重复消费
-		iris.WithoutPathCorrection,                 // 不自动补全斜杠
-		iris.WithOptimizations,                     // 启用性能优化
-		iris.WithoutStartupLog,                     // 不要打印iris启动信息
-		iris.WithPathEscape,                        // 解析path转义
-		iris.WithFireMethodNotAllowed,              // 路由未找到时返回405而不是404
-		iris.WithPostMaxMemory(conf.PostMaxMemory), // post允许客户端传输最大数据大小
+		iris.WithoutBodyConsumptionOnUnmarshal,       // 重复消费
+		iris.WithoutPathCorrection,                   // 不自动补全斜杠
+		iris.WithOptimizations,                       // 启用性能优化
+		iris.WithoutStartupLog,                       // 不要打印iris启动信息
+		iris.WithPathEscape,                          // 解析path转义
+		iris.WithFireMethodNotAllowed,                // 路由未找到时返回405而不是404
+		iris.WithPostMaxMemory(a.conf.PostMaxMemory), // post允许客户端传输最大数据大小
 	}
-	if conf.IPWithNginxForwarded {
+	if a.conf.IPWithNginxForwarded {
 		opts = append(opts, iris.WithRemoteAddrHeader("X-Forwarded-For"))
 	}
-	if conf.IPWithNginxReal {
+	if a.conf.IPWithNginxReal {
 		opts = append(opts, iris.WithRemoteAddrHeader("X-Real-IP"))
 	}
-	return a.Run(iris.Addr(conf.Bind), opts...)
+	return a.Run(iris.Addr(a.conf.Bind), opts...)
+}
+
+// 注册路由
+func (a *ApiService) RegistryRouter(fn ...RegisterApiRouterFunc) {
+	for _, h := range fn {
+		h(a.app.GetComponent(), a.Party("/"))
+	}
 }
 
 func (a *ApiService) Close() error {

@@ -12,6 +12,9 @@ import (
 	"github.com/zly-app/zapp"
 	"github.com/zly-app/zapp/core"
 	"github.com/zly-app/zapp/service"
+	"go.uber.org/zap"
+
+	"github.com/zly-app/service/api/config"
 )
 
 // 默认服务类型
@@ -28,7 +31,7 @@ func SetServiceType(t core.ServiceType) {
 // 启用app服务
 func WithService(opts ...Option) zapp.Option {
 	service.RegisterCreatorFunc(nowServiceType, func(app core.IApp) core.IService {
-		return NewHttpService(app, opts...)
+		return newService(app, opts...)
 	})
 	return zapp.WithService(nowServiceType)
 }
@@ -40,4 +43,39 @@ func RegistryRouter(fn ...RegisterApiRouterFunc) {
 		a[i] = h
 	}
 	zapp.App().InjectService(nowServiceType, a...)
+}
+
+type Service struct {
+	app core.IApp
+	api *ApiService
+}
+
+func (s *Service) Inject(a ...interface{}) {
+	for _, h := range a {
+		fn, ok := h.(RegisterApiRouterFunc)
+		if !ok {
+			s.app.Fatal("api服务注入类型错误, 它必须能转为 api.RegisterApiRouterFunc")
+		}
+
+		s.api.RegistryRouter(fn)
+	}
+}
+
+func (s *Service) Start() error { return s.api.Start() }
+
+func (s *Service) Close() error { return s.api.Close() }
+
+func newService(app core.IApp, opts ...Option) *Service {
+	conf := config.NewConfig()
+	err := app.GetConfig().ParseServiceConfig(nowServiceType, conf, true)
+	if err != nil {
+		app.Fatal("获取api服务配置失败", zap.Error(err))
+	}
+	conf.Check()
+
+	api := NewApiService(app, conf, opts...)
+	return &Service{
+		app: app,
+		api: api,
+	}
 }

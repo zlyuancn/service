@@ -20,7 +20,7 @@ import (
 
 	app_config "github.com/zly-app/zapp/config"
 
-	"github.com/zly-app/service/api/config"
+	"github.com/zly-app/service/api/utils"
 )
 
 // 处理程序
@@ -94,7 +94,9 @@ func wrap(handler interface{}, isMiddleware bool) iris.Handler {
 func WriteToCtx(ctx *Context, result interface{}) {
 	if err, ok := result.(error); ok {
 		code, message := decodeErr(err)
-		if app_config.Conf.Config().Frame.Debug || config.Conf.SendDetailedErrorInProduction {
+
+		conf := utils.Context.MustGetConfFromIrisContext(ctx.IrisContext)
+		if app_config.Conf.Config().Frame.Debug || conf.SendDetailedErrorInProduction {
 			message = err.Error()
 		}
 		ctx.Values().Set("error", err)
