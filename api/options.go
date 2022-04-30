@@ -5,7 +5,7 @@ import (
 )
 
 type options struct {
-	Middlewares  []interface{}       // 中间件, 需要Wrap函数包装后才能用
+	Middlewares  []interface{}       // 中间件, 函数格式参考WrapMiddleware
 	Configurator []iris.Configurator // 配置项
 }
 
@@ -26,7 +26,7 @@ func WithConfigurator(configs ...iris.Configurator) Option {
 	}
 }
 
-// 添加全局中间件
+// 添加全局中间件, 函数格式参考WrapMiddleware
 func WithMiddleware(fn interface{}) Option {
 	return func(o *options) {
 		o.Middlewares = append(o.Middlewares, fn)
