@@ -51,35 +51,28 @@ func LoggerMiddleware(app core.IApp, conf *config.Config) iris.Handler {
 // 以文本方式输出
 func loggerMiddleware(app core.IApp, conf *config.Config) iris.Handler {
 	isDebug := app_config.Conf.Config().Frame.Debug
-	return func(ctx iris.Context) {
+	return func(irisCtx iris.Context) {
 		startTime := time.Now()
-		ip := utils.Context.GetRemoteIP(ctx)
 
 		// log
-		log := app.NewSessionLogger()
-		utils.Context.SaveLoggerToIrisContext(ctx, log)
-
-		// conf
-		utils.Context.SaveConfToIrisContext(ctx, conf)
+		log := utils.Context.MustGetLoggerFromIrisContext(irisCtx)
 
 		// 链路追踪
-		span := opentracing.StartSpan("api")
-		defer span.Finish()
-		c := opentracing.ContextWithSpan(app.BaseContext(), span)
-		utils.Context.SaveContextToIrisContext(ctx, c)
-
-		params := valuesToTexts(ctx.Request().URL.Query(), "=")
+		ctx := utils.Context.MustGetContextFromIrisContext(irisCtx)
+		span := opentracing.SpanFromContext(ctx)
 
 		// request
-		span.SetTag("method", ctx.Method())
-		span.SetTag("path", ctx.Path())
+		ip := utils.Context.GetRemoteIP(irisCtx)
+		params := valuesToTexts(irisCtx.Request().URL.Query(), "=")
+		span.SetTag("method", irisCtx.Method())
+		span.SetTag("path", irisCtx.Path())
 		span.SetTag("params", strings.Join(params, "\n"))
-		span.SetTag("ip", ctx.RemoteAddr())
+		span.SetTag("ip", irisCtx.RemoteAddr())
 		var msgBuff bytes.Buffer
 		msgBuff.WriteString("api.request path: ")
-		msgBuff.WriteString(ctx.Method())
+		msgBuff.WriteString(irisCtx.Method())
 		msgBuff.WriteByte(' ')
-		msgBuff.WriteString(ctx.Path())
+		msgBuff.WriteString(irisCtx.Path())
 		msgBuff.WriteString("\nparams:\n")
 		for _, s := range params {
 			msgBuff.WriteString("  ")
@@ -90,14 +83,14 @@ func loggerMiddleware(app core.IApp, conf *config.Config) iris.Handler {
 		log.Debug(msgBuff.String(), zap.String("ip", ip))
 
 		// handler
-		ctx.Next()
+		irisCtx.Next()
 
 		// response
 		msgBuff.Reset()
 		msgBuff.WriteString("api.response path: ")
-		msgBuff.WriteString(ctx.Method())
+		msgBuff.WriteString(irisCtx.Method())
 		msgBuff.WriteByte(' ')
-		msgBuff.WriteString(ctx.Path())
+		msgBuff.WriteString(irisCtx.Path())
 		msgBuff.WriteString("\nparams:\n")
 		for _, s := range params {
 			msgBuff.WriteString("  ")
@@ -114,8 +107,8 @@ func loggerMiddleware(app core.IApp, conf *config.Config) iris.Handler {
 		}
 
 		// error
-		err, hasErr := ctx.Values().Get("error").(error)
-		hasPanic, _ := ctx.Values().Get("panic").(bool)
+		err, hasErr := irisCtx.Values().Get("error").(error)
+		hasPanic, _ := irisCtx.Values().Get("panic").(bool)
 		if hasErr {
 			if err == nil {
 				err = fmt.Errorf("err{nil}")
@@ -124,7 +117,7 @@ func loggerMiddleware(app core.IApp, conf *config.Config) iris.Handler {
 
 		// headers
 		if hasErr || conf.AlwaysLogHeaders {
-			headers := valuesToTexts(ctx.Request().Header, ": ")
+			headers := valuesToTexts(irisCtx.Request().Header, ": ")
 			span.SetTag("headers", strings.Join(headers, "\n"))
 			msgBuff.WriteString("headers:\n")
 			for _, s := range headers {
@@ -138,12 +131,12 @@ func loggerMiddleware(app core.IApp, conf *config.Config) iris.Handler {
 		// body
 		if hasErr || conf.AlwaysLogBody {
 			var bodyText string
-			if ctx.GetContentTypeRequested() == iris_context.ContentBinaryHeaderValue { // 流
-				bodyText = fmt.Sprintf("body<bytesLen=%d>", ctx.GetContentLength())
-			} else if ctx.GetContentLength() > conf.LogBodyMaxSize { // 超长
-				bodyText = fmt.Sprintf("body<len=%d>", ctx.GetContentLength())
+			if irisCtx.GetContentTypeRequested() == iris_context.ContentBinaryHeaderValue { // 流
+				bodyText = fmt.Sprintf("body<bytesLen=%d>", irisCtx.GetContentLength())
+			} else if irisCtx.GetContentLength() > conf.LogBodyMaxSize { // 超长
+				bodyText = fmt.Sprintf("body<len=%d>", irisCtx.GetContentLength())
 			} else {
-				body, _ := ctx.GetBody()
+				body, _ := irisCtx.GetBody()
 				bodyText = string(body)
 			}
 			span.LogFields(open_log.String("body", bodyText))
@@ -155,13 +148,13 @@ func loggerMiddleware(app core.IApp, conf *config.Config) iris.Handler {
 		// result
 		if !hasErr {
 			var result string
-			contentType := iris_context.TrimHeaderValue(ctx.ResponseWriter().Header().Get(iris_context.ContentTypeHeaderKey))
+			contentType := iris_context.TrimHeaderValue(irisCtx.ResponseWriter().Header().Get(iris_context.ContentTypeHeaderKey))
 			if contentType == iris_context.ContentBinaryHeaderValue { // 流
-				result = fmt.Sprintf("result<bytesLen=%d>", ctx.ResponseWriter().Written())
-			} else if ctx.ResponseWriter().Written() > conf.LogApiResultMaxSize { // 超长
-				result = fmt.Sprintf("result<len=%d>", ctx.ResponseWriter().Written())
+				result = fmt.Sprintf("result<bytesLen=%d>", irisCtx.ResponseWriter().Written())
+			} else if irisCtx.ResponseWriter().Written() > conf.LogApiResultMaxSize { // 超长
+				result = fmt.Sprintf("result<len=%d>", irisCtx.ResponseWriter().Written())
 			} else {
-				switch v := ctx.Values().Get("result").(type) {
+				switch v := irisCtx.Values().Get("result").(type) {
 				case nil:
 					result = "result<nil>"
 				case string:
@@ -191,7 +184,7 @@ func loggerMiddleware(app core.IApp, conf *config.Config) iris.Handler {
 			return
 		}
 
-		handlerName := ctx.Values().GetStringDefault("_handler_name", ctx.HandlerName())
+		handlerName := irisCtx.Values().GetStringDefault("_handler_name", irisCtx.HandlerName())
 		// panic
 		panicErrDetail := app_utils.Recover.GetRecoverErrorDetail(err)
 		panicErrInfos := strings.Split(panicErrDetail, "\n")
@@ -220,55 +213,48 @@ func loggerMiddleware(app core.IApp, conf *config.Config) iris.Handler {
 				panicErrInfos...,
 			)
 		}
-		_, _ = ctx.JSON(result)
-		ctx.StopExecution()
+		_, _ = irisCtx.JSON(result)
+		irisCtx.StopExecution()
 	}
 }
 
 // 以json方式输出
 func loggerMiddlewareWithJson(app core.IApp, conf *config.Config) iris.Handler {
 	isDebug := app_config.Conf.Config().Frame.Debug
-	return func(ctx *iris_context.Context) {
+	return func(irisCtx *iris_context.Context) {
 		startTime := time.Now()
-		ip := utils.Context.GetRemoteIP(ctx)
 
 		// log
-		log := app.NewSessionLogger()
-		utils.Context.SaveLoggerToIrisContext(ctx, log)
-
-		// conf
-		utils.Context.SaveConfToIrisContext(ctx, conf)
+		log := utils.Context.MustGetLoggerFromIrisContext(irisCtx)
 
 		// 链路追踪
-		span := opentracing.StartSpan("api")
-		defer span.Finish()
-		c := opentracing.ContextWithSpan(app.BaseContext(), span)
-		utils.Context.SaveContextToIrisContext(ctx, c)
-
-		params := valuesToTexts(ctx.Request().URL.Query(), "=")
+		ctx := utils.Context.MustGetContextFromIrisContext(irisCtx)
+		span := opentracing.SpanFromContext(ctx)
 
 		// request
-		span.SetTag("method", ctx.Method())
-		span.SetTag("path", ctx.Path())
+		ip := utils.Context.GetRemoteIP(irisCtx)
+		params := valuesToTexts(irisCtx.Request().URL.Query(), "=")
+		span.SetTag("method", irisCtx.Method())
+		span.SetTag("path", irisCtx.Path())
 		span.SetTag("params", strings.Join(params, "\n"))
-		span.SetTag("ip", ctx.RemoteAddr())
+		span.SetTag("ip", irisCtx.RemoteAddr())
 		log.Debug(
 			"api.request",
-			zap.String("method", ctx.Method()),
-			zap.String("path", ctx.Path()),
+			zap.String("method", irisCtx.Method()),
+			zap.String("path", irisCtx.Path()),
 			zap.Strings("params", params),
 			zap.String("ip", ip),
 		)
 
 		// handler
-		ctx.Next()
+		irisCtx.Next()
 
 		// response
 		latency := time.Since(startTime)
 		fields := []interface{}{
 			"api.response",
-			zap.String("method", ctx.Method()),
-			zap.String("path", ctx.Path()),
+			zap.String("method", irisCtx.Method()),
+			zap.String("path", irisCtx.Path()),
 			zap.Strings("params", params),
 			zap.String("ip", ip),
 			zap.String("latency_text", latency.String()),
@@ -276,8 +262,8 @@ func loggerMiddlewareWithJson(app core.IApp, conf *config.Config) iris.Handler {
 		}
 
 		// error
-		err, hasErr := ctx.Values().Get("error").(error)
-		hasPanic, _ := ctx.Values().Get("panic").(bool)
+		err, hasErr := irisCtx.Values().Get("error").(error)
+		hasPanic, _ := irisCtx.Values().Get("panic").(bool)
 		if hasErr {
 			if err == nil {
 				err = fmt.Errorf("err{nil}")
@@ -286,7 +272,7 @@ func loggerMiddlewareWithJson(app core.IApp, conf *config.Config) iris.Handler {
 
 		// headers
 		if hasErr || conf.AlwaysLogHeaders {
-			headers := valuesToTexts(ctx.Request().Header, ": ")
+			headers := valuesToTexts(irisCtx.Request().Header, ": ")
 			span.SetTag("headers", strings.Join(headers, "\n"))
 			fields = append(fields, zap.Strings("headers", headers))
 		}
@@ -294,12 +280,12 @@ func loggerMiddlewareWithJson(app core.IApp, conf *config.Config) iris.Handler {
 		// body
 		if hasErr || conf.AlwaysLogBody {
 			var bodyText string
-			if ctx.GetContentTypeRequested() == iris_context.ContentBinaryHeaderValue { // 流
-				bodyText = fmt.Sprintf("body<bytesLen=%d>", ctx.GetContentLength())
-			} else if ctx.GetContentLength() > conf.LogBodyMaxSize { // 超长
-				bodyText = fmt.Sprintf("body<len=%d>", ctx.GetContentLength())
+			if irisCtx.GetContentTypeRequested() == iris_context.ContentBinaryHeaderValue { // 流
+				bodyText = fmt.Sprintf("body<bytesLen=%d>", irisCtx.GetContentLength())
+			} else if irisCtx.GetContentLength() > conf.LogBodyMaxSize { // 超长
+				bodyText = fmt.Sprintf("body<len=%d>", irisCtx.GetContentLength())
 			} else {
-				body, _ := ctx.GetBody()
+				body, _ := irisCtx.GetBody()
 				bodyText = string(body)
 			}
 			span.LogFields(open_log.String("body", bodyText))
@@ -309,13 +295,13 @@ func loggerMiddlewareWithJson(app core.IApp, conf *config.Config) iris.Handler {
 		// result
 		if !hasErr {
 			var result string
-			contentType := iris_context.TrimHeaderValue(ctx.ResponseWriter().Header().Get(iris_context.ContentTypeHeaderKey))
+			contentType := iris_context.TrimHeaderValue(irisCtx.ResponseWriter().Header().Get(iris_context.ContentTypeHeaderKey))
 			if contentType == iris_context.ContentBinaryHeaderValue { // 流
-				result = fmt.Sprintf("result<bytesLen=%d>", ctx.ResponseWriter().Written())
-			} else if ctx.ResponseWriter().Written() > conf.LogApiResultMaxSize { // 超长
-				result = fmt.Sprintf("result<len=%d>", ctx.ResponseWriter().Written())
+				result = fmt.Sprintf("result<bytesLen=%d>", irisCtx.ResponseWriter().Written())
+			} else if irisCtx.ResponseWriter().Written() > conf.LogApiResultMaxSize { // 超长
+				result = fmt.Sprintf("result<len=%d>", irisCtx.ResponseWriter().Written())
 			} else {
-				switch v := ctx.Values().Get("result").(type) {
+				switch v := irisCtx.Values().Get("result").(type) {
 				case nil:
 					result = "result<nil>"
 				case string:
@@ -341,7 +327,7 @@ func loggerMiddlewareWithJson(app core.IApp, conf *config.Config) iris.Handler {
 			return
 		}
 
-		handlerName := ctx.Values().GetStringDefault("_handler_name", ctx.HandlerName())
+		handlerName := irisCtx.Values().GetStringDefault("_handler_name", irisCtx.HandlerName())
 		// panic
 		panicErrDetail := app_utils.Recover.GetRecoverErrorDetail(err)
 		panicErrInfos := strings.Split(panicErrDetail, "\n")
@@ -370,7 +356,7 @@ func loggerMiddlewareWithJson(app core.IApp, conf *config.Config) iris.Handler {
 				panicErrInfos...,
 			)
 		}
-		_, _ = ctx.JSON(result)
-		ctx.StopExecution()
+		_, _ = irisCtx.JSON(result)
+		irisCtx.StopExecution()
 	}
 }

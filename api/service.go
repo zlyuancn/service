@@ -39,6 +39,7 @@ func NewApiService(app core.IApp, conf *config.Config, opts ...Option) *ApiServi
 	irisApp := iris.New()
 	irisApp.Logger().SetLevel("disable") // 关闭默认日志
 	irisApp.Use(
+		middleware.BaseMiddleware(app, conf),
 		middleware.LoggerMiddleware(app, conf),
 		cors.AllowAll(),
 		middleware.Recover(),
