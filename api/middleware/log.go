@@ -80,7 +80,11 @@ func loggerMiddleware(app core.IApp, conf *config.Config) iris.Handler {
 			msgBuff.WriteByte('\n')
 		}
 		msgBuff.WriteByte('\n')
-		log.Debug(msgBuff.String(), zap.String("ip", ip))
+		if conf.ReqLogLevelIsInfo {
+			log.Info(msgBuff.String(), zap.String("ip", ip))
+		} else {
+			log.Debug(msgBuff.String(), zap.String("ip", ip))
+		}
 
 		// handler
 		irisCtx.Next()
@@ -169,7 +173,11 @@ func loggerMiddleware(app core.IApp, conf *config.Config) iris.Handler {
 				msgBuff.WriteString(result)
 				msgBuff.WriteString("\n\n")
 			}
-			log.Debug(append([]interface{}{msgBuff.String()}, fields...)...)
+			if conf.RspLogLevelIsInfo {
+				log.Info(append([]interface{}{msgBuff.String()}, fields...)...)
+			} else {
+				log.Debug(append([]interface{}{msgBuff.String()}, fields...)...)
+			}
 			return
 		}
 
@@ -238,20 +246,26 @@ func loggerMiddlewareWithJson(app core.IApp, conf *config.Config) iris.Handler {
 		span.SetTag("path", irisCtx.Path())
 		span.SetTag("params", strings.Join(params, "\n"))
 		span.SetTag("ip", irisCtx.RemoteAddr())
-		log.Debug(
+
+		fields := []interface{}{
 			"api.request",
 			zap.String("method", irisCtx.Method()),
 			zap.String("path", irisCtx.Path()),
 			zap.Strings("params", params),
 			zap.String("ip", ip),
-		)
+		}
+		if conf.ReqLogLevelIsInfo {
+			log.Info(fields...)
+		} else {
+			log.Debug(fields...)
+		}
 
 		// handler
 		irisCtx.Next()
 
 		// response
 		latency := time.Since(startTime)
-		fields := []interface{}{
+		fields = []interface{}{
 			"api.response",
 			zap.String("method", irisCtx.Method()),
 			zap.String("path", irisCtx.Path()),
@@ -314,7 +328,11 @@ func loggerMiddlewareWithJson(app core.IApp, conf *config.Config) iris.Handler {
 			if (isDebug && conf.LogApiResultInDevelop) || (!isDebug && conf.LogApiResultInProd) {
 				fields = append(fields, zap.String("result", result))
 			}
-			log.Debug(fields...)
+			if conf.RspLogLevelIsInfo {
+				log.Info(fields...)
+			} else {
+				log.Debug(fields...)
+			}
 			return
 		}
 

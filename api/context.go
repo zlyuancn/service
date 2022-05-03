@@ -18,6 +18,7 @@ import (
 
 	"github.com/zly-app/zapp/core"
 
+	"github.com/zly-app/service/api/config"
 	"github.com/zly-app/service/api/utils"
 	"github.com/zly-app/service/api/validator"
 )
@@ -27,14 +28,16 @@ type IrisContext = iris_context.Context
 type Context struct {
 	*IrisContext // 原始 iris.Context
 	core.ILogger
-	ctx context.Context
+	ctx  context.Context
+	conf *config.Config
 }
 
-func makeContext(ctx iris.Context) *Context {
+func makeContext(irisCtx iris.Context) *Context {
 	return &Context{
-		IrisContext: ctx,
-		ILogger:     utils.Context.MustGetLoggerFromIrisContext(ctx),
-		ctx:         utils.Context.MustGetContextFromIrisContext(ctx),
+		IrisContext: irisCtx,
+		ILogger:     utils.Context.MustGetLoggerFromIrisContext(irisCtx),
+		ctx:         utils.Context.MustGetContextFromIrisContext(irisCtx),
+		conf:        utils.Context.MustGetConfFromIrisContext(irisCtx),
 	}
 }
 
@@ -44,7 +47,11 @@ func (c *Context) Bind(a interface{}) error {
 		return ParamError.WithError(err)
 	}
 
-	c.Debug("api.request.bind", zap.Any("arg", a))
+	if c.conf.BindLogLevelIsInfo {
+		c.Info("api.request.bind", zap.Any("arg", a))
+	} else {
+		c.Debug("api.request.bind", zap.Any("arg", a))
+	}
 
 	val := reflect.ValueOf(a)
 	if val.Kind() == reflect.Interface || val.Kind() == reflect.Ptr {

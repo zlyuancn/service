@@ -26,6 +26,9 @@ const (
 // api服务配置
 type Config struct {
 	Bind                          string // bind地址
+	ReqLogLevelIsInfo             bool   // 请求日志等级设为info
+	RspLogLevelIsInfo             bool   // 响应日志等级设为info
+	BindLogLevelIsInfo            bool   // bind日志等级设为info
 	IPWithNginxForwarded          bool   // 适配nginx的Forwarded获取ip, 优先级高于nginx的Real
 	IPWithNginxReal               bool   // 适配nginx的Real获取ip, 优先级高于sock连接的ip
 	LogApiResultInDevelop         bool   // 在开发环境中输出api结果
