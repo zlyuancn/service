@@ -47,15 +47,16 @@ func NewGrpcService(app core.IApp) core.IService {
 	}
 	conf.Check()
 
-	chainUnaryClientList := []grpc.UnaryServerInterceptor{
-		UnaryServerLogInterceptor(app),         // 日志
-		grpc_ctxtags.UnaryServerInterceptor(),  // 设置标记
-		grpc_recovery.UnaryServerInterceptor(), // panic恢复
-	}
+	chainUnaryClientList := []grpc.UnaryServerInterceptor{}
 
 	if conf.EnableOpenTrace {
 		chainUnaryClientList = append(chainUnaryClientList, UnaryServerOpenTraceInterceptor)
 	}
+	chainUnaryClientList = append(chainUnaryClientList,
+		UnaryServerLogInterceptor(app),         // 日志
+		grpc_ctxtags.UnaryServerInterceptor(),  // 设置标记
+		grpc_recovery.UnaryServerInterceptor(), // panic恢复
+	)
 
 	server := grpc.NewServer(
 		grpc.UnaryInterceptor(grpc_middleware.ChainUnaryServer(chainUnaryClientList...)),
@@ -119,7 +120,7 @@ func (g *GrpcService) Close() error {
 // 日志拦截器
 func UnaryServerLogInterceptor(app core.IApp) grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
-		log := app.NewSessionLogger(zap.String("grpc.method", info.FullMethod))
+		log := app.NewTraceLogger(ctx, zap.String("grpc.method", info.FullMethod))
 		se := &Session{
 			ILogger: log,
 		}

@@ -14,7 +14,7 @@ const (
 	// 默认心跳时间
 	defaultHeartbeatTime = 20000
 	// 默认启用开放链路追踪
-	defaultEnableOpenTrace = false
+	defaultEnableOpenTrace = true
 )
 
 // grpc服务配置
