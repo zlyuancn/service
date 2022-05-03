@@ -19,7 +19,6 @@ import (
 	grpc_ctxtags "github.com/grpc-ecosystem/go-grpc-middleware/tags"
 	"github.com/opentracing/opentracing-go"
 	"github.com/zly-app/zapp/core"
-	"github.com/zly-app/zapp/logger"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/keepalive"
@@ -53,7 +52,7 @@ func NewGrpcService(app core.IApp) core.IService {
 		chainUnaryClientList = append(chainUnaryClientList, UnaryServerOpenTraceInterceptor)
 	}
 	chainUnaryClientList = append(chainUnaryClientList,
-		UnaryServerLogInterceptor(app),         // 日志
+		UnaryServerLogInterceptor(app, conf),   // 日志
 		grpc_ctxtags.UnaryServerInterceptor(),  // 设置标记
 		grpc_recovery.UnaryServerInterceptor(), // panic恢复
 	)
@@ -118,7 +117,7 @@ func (g *GrpcService) Close() error {
 }
 
 // 日志拦截器
-func UnaryServerLogInterceptor(app core.IApp) grpc.UnaryServerInterceptor {
+func UnaryServerLogInterceptor(app core.IApp, conf *Config) grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
 		log := app.NewTraceLogger(ctx, zap.String("grpc.method", info.FullMethod))
 		se := &Session{
@@ -127,11 +126,20 @@ func UnaryServerLogInterceptor(app core.IApp) grpc.UnaryServerInterceptor {
 		ctx = context.WithValue(ctx, sessionContextKey, se)
 
 		startTime := time.Now()
-		log.Debug("grpc.request", zap.Any("req", req))
+		if conf.ReqLogLevelIsInfo {
+			log.Info("grpc.request", zap.Any("req", req))
+		} else {
+			log.Debug("grpc.request", zap.Any("req", req))
+		}
 
 		reply, err := handler(ctx, req)
 		if err != nil {
 			log.Error("grpc.response", zap.String("latency", time.Since(startTime).String()), zap.Error(err))
+			return reply, err
+		}
+
+		if conf.RspLogLevelIsInfo {
+			log.Info("grpc.response", zap.String("latency", time.Since(startTime).String()), zap.Any("reply", reply))
 		} else {
 			log.Debug("grpc.response", zap.String("latency", time.Since(startTime).String()), zap.Any("reply", reply))
 		}
@@ -166,10 +174,7 @@ func UnaryServerOpenTraceInterceptor(ctx context.Context, req interface{}, info 
 
 	// 从元数据中取出span
 	carrier := TextMapCarrier{md}
-	parentSpan, err := opentracing.GlobalTracer().Extract(opentracing.TextMap, carrier)
-	if err != nil {
-		logger.Log.Error("grpc trace extract err", zap.Error(err))
-	}
+	parentSpan, _ := opentracing.GlobalTracer().Extract(opentracing.TextMap, carrier)
 
 	span := opentracing.StartSpan(info.FullMethod, opentracing.ChildOf(parentSpan))
 	defer span.Finish()
