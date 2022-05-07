@@ -66,8 +66,8 @@ func loggerMiddleware(app core.IApp, conf *config.Config) iris.Handler {
 		params := valuesToTexts(irisCtx.Request().URL.Query(), "=")
 		span.SetTag("method", irisCtx.Method())
 		span.SetTag("path", irisCtx.Path())
-		span.SetTag("params", strings.Join(params, "\n"))
-		span.SetTag("ip", irisCtx.RemoteAddr())
+		span.LogFields(open_log.String("params", strings.Join(params, "\n")))
+		span.LogFields(open_log.String("ip", irisCtx.RemoteAddr()))
 		var msgBuff bytes.Buffer
 		msgBuff.WriteString("api.request path: ")
 		msgBuff.WriteString(irisCtx.Method())
@@ -122,7 +122,7 @@ func loggerMiddleware(app core.IApp, conf *config.Config) iris.Handler {
 		// headers
 		if hasErr || conf.AlwaysLogHeaders {
 			headers := valuesToTexts(irisCtx.Request().Header, ": ")
-			span.SetTag("headers", strings.Join(headers, "\n"))
+			span.LogFields(open_log.String("headers", strings.Join(headers, "\n")))
 			msgBuff.WriteString("headers:\n")
 			for _, s := range headers {
 				msgBuff.WriteString("  ")
@@ -199,7 +199,7 @@ func loggerMiddleware(app core.IApp, conf *config.Config) iris.Handler {
 		span.SetTag("error", true)
 		span.SetTag("panic", true)
 		span.SetTag("handler_name", handlerName)
-		span.SetTag("err", err.Error())
+		span.LogFields(open_log.String("err", err.Error()))
 		span.LogFields(open_log.String("detail", panicErrDetail))
 
 		msgBuff.WriteString("panic:\n")
@@ -244,8 +244,8 @@ func loggerMiddlewareWithJson(app core.IApp, conf *config.Config) iris.Handler {
 		params := valuesToTexts(irisCtx.Request().URL.Query(), "=")
 		span.SetTag("method", irisCtx.Method())
 		span.SetTag("path", irisCtx.Path())
-		span.SetTag("params", strings.Join(params, "\n"))
-		span.SetTag("ip", irisCtx.RemoteAddr())
+		span.LogFields(open_log.String("params", strings.Join(params, "\n")))
+		span.LogFields(open_log.String("ip", irisCtx.RemoteAddr()))
 
 		fields := []interface{}{
 			"api.request",
@@ -287,7 +287,7 @@ func loggerMiddlewareWithJson(app core.IApp, conf *config.Config) iris.Handler {
 		// headers
 		if hasErr || conf.AlwaysLogHeaders {
 			headers := valuesToTexts(irisCtx.Request().Header, ": ")
-			span.SetTag("headers", strings.Join(headers, "\n"))
+			span.LogFields(open_log.String("headers", strings.Join(headers, "\n")))
 			fields = append(fields, zap.Strings("headers", headers))
 		}
 
@@ -339,7 +339,7 @@ func loggerMiddlewareWithJson(app core.IApp, conf *config.Config) iris.Handler {
 		// error
 		if !hasPanic {
 			span.SetTag("error", true)
-			span.SetTag("err", err.Error())
+			span.LogFields(open_log.String("err", err.Error()))
 			fields = append(fields, zap.String("err", err.Error()))
 			log.Error(fields...)
 			return
@@ -352,7 +352,7 @@ func loggerMiddlewareWithJson(app core.IApp, conf *config.Config) iris.Handler {
 		span.SetTag("error", true)
 		span.SetTag("panic", true)
 		span.SetTag("handler_name", handlerName)
-		span.SetTag("err", err.Error())
+		span.LogFields(open_log.String("err", err.Error()))
 		span.LogFields(open_log.String("detail", panicErrDetail))
 
 		fields = append(fields,
