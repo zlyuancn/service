@@ -1,44 +1,72 @@
 package pulsar_consume
 
 import (
+	"context"
 	"fmt"
+	"strings"
+	"time"
 
 	"github.com/apache/pulsar-client-go/pulsar"
 	"github.com/zly-app/zapp/core"
+	"go.uber.org/zap"
 )
 
 type Consume struct {
-	app     core.IApp
-	consume pulsar.Consumer
-	handle  func(message Message) error
+	app       core.IApp
+	conf      *Config
+	consume   pulsar.Consumer
+	handle    func(message Message) bool
+	workers   *Workers
+	ctx       context.Context
+	ctxCancel context.CancelFunc
 }
 
 func (c *Consume) Start() {
-	panic("未实现")
-}
-func (c *Consume) Close() {
-	panic("未实现")
+	c.workers.Start()
+	for {
+		select {
+		case <-c.ctx.Done():
+			return
+		default:
+			msg, err := c.consume.Receive(c.ctx)
+			if err == context.Canceled {
+				return
+			}
+			if err != nil {
+				c.app.Error("consume.Receive err", zap.Error(err))
+				time.Sleep(time.Duration(c.conf.ReceiveMsgRetryTime) * time.Millisecond)
+				continue
+			}
+			c.workers.Go(func() {
+				if c.handle(msg) { // 成功
+					c.consume.Ack(msg)
+				} else if c.conf.EnableRetryTopic {
+					c.consume.ReconsumeLater(msg, time.Duration(c.conf.ReconsumeTime)*time.Millisecond)
+				} else {
+					c.consume.Nack(msg)
+				}
+			})
+		}
+	}
 }
 
-func NewConsume(app core.IApp, client pulsar.Client, conf *Config, handle func(Message) error) (*Consume, error) {
+func (c *Consume) Close() {
+	c.ctxCancel()
+	c.workers.Stop()
+}
+
+func NewConsume(app core.IApp, client pulsar.Client, conf *Config, handle func(Message) bool) (*Consume, error) {
 	co := pulsar.ConsumerOptions{
-		Topic:                          "",
-		Topics:                         nil,
-		TopicsPattern:                  "",
-		AutoDiscoveryPeriod:            0,
-		SubscriptionName:               "",
-		Properties:                     nil,
-		SubscriptionProperties:         nil,
-		Type:                           0,
-		SubscriptionInitialPosition:    0,
-		DLQ:                            nil,
-		KeySharedPolicy:                nil,
-		RetryEnable:                    false,
-		MessageChannel:                 nil,
-		ReceiverQueueSize:              0,
-		NackRedeliveryDelay:            0,
-		Name:                           "",
-		ReadCompacted:                  false,
+		AutoDiscoveryPeriod: time.Duration(conf.AutoDiscoveryPeriod) * time.Millisecond,
+		SubscriptionName:    conf.SubscriptionName,
+		//Properties:                     nil,
+		//SubscriptionProperties:         nil,
+		//KeySharedPolicy:                nil,
+		RetryEnable:                    conf.EnableRetryTopic,
+		ReceiverQueueSize:              conf.ReceiverQueueSize,
+		NackRedeliveryDelay:            time.Duration(conf.ReconsumeTime) * time.Millisecond,
+		Name:                           conf.ConsumeName,
+		ReadCompacted:                  conf.ReadCompacted,
 		ReplicateSubscriptionState:     false,
 		Interceptors:                   nil,
 		Schema:                         nil,
@@ -47,16 +75,54 @@ func NewConsume(app core.IApp, client pulsar.Client, conf *Config, handle func(M
 		EnableDefaultNackBackoffPolicy: false,
 		NackBackoffPolicy:              nil,
 	}
+	if conf.Topics != "" {
+		topics := strings.Split(conf.Topics, ",")
+		if len(topics) == 1 {
+			co.Topic = topics[0]
+		} else {
+			co.Topics = topics
+		}
+	} else {
+		co.TopicsPattern = conf.TopicsPattern
+	}
+	switch strings.ToLower(conf.SubscriptionType) {
+	case "exclusive":
+		co.Type = pulsar.Exclusive
+	case "failover":
+		co.Type = pulsar.Failover
+	case "shared":
+		co.Type = pulsar.Shared
+	case "keyshared":
+		co.Type = pulsar.KeyShared
+	}
+	switch strings.ToLower(conf.SubscriptionInitialPosition) {
+	case "latest":
+		co.SubscriptionInitialPosition = pulsar.SubscriptionPositionLatest
+	case "earliest":
+		co.SubscriptionInitialPosition = pulsar.SubscriptionPositionEarliest
+	}
+	if conf.DLQMaxDeliveries > 0 {
+		co.DLQ = &pulsar.DLQPolicy{
+			MaxDeliveries:    uint32(conf.DLQMaxDeliveries),
+			DeadLetterTopic:  conf.DLQDeadLetterTopic,
+			RetryLetterTopic: conf.DLQRetryLetterTopic,
+		}
+	}
 
 	consume, err := client.Subscribe(co)
 	if err != nil {
 		return nil, fmt.Errorf("订阅失败: %v", err)
 	}
 
+	ctx, ctxCancel := context.WithCancel(app.BaseContext())
 	c := &Consume{
-		app:     app,
-		consume: consume,
-		handle:  handle,
+		app:       app,
+		conf:      conf,
+		consume:   consume,
+		handle:    handle,
+		workers:   NewWorkers(conf.ConsumeThreadCount),
+		ctx:       ctx,
+		ctxCancel: ctxCancel,
 	}
 	return c, nil
 }

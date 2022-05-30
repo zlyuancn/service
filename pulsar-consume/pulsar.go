@@ -2,6 +2,7 @@ package pulsar_consume
 
 import (
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/apache/pulsar-client-go/pulsar"
@@ -16,14 +17,26 @@ type PulsarConsumeService struct {
 }
 
 func (p *PulsarConsumeService) Start() error {
-	panic("未实现")
+	for _, consume := range p.consumes {
+		go consume.Start()
+	}
+	return nil
 }
 
 func (p *PulsarConsumeService) Close() error {
-	panic("未实现")
+	var wg sync.WaitGroup
+	wg.Add(len(p.consumes))
+	for _, consume := range p.consumes {
+		go func(consume *Consume) {
+			consume.Close()
+			wg.Done()
+		}(consume)
+	}
+	wg.Wait()
+	return nil
 }
 
-func (p *PulsarConsumeService) Consume(msg Message) error {
+func (p *PulsarConsumeService) Consume(msg Message) bool {
 	panic("未实现")
 }
 
@@ -38,8 +51,8 @@ func NewConsumeService(app core.IApp, conf *Config) (*PulsarConsumeService, erro
 
 	co := pulsar.ClientOptions{
 		URL:                     conf.Url,
-		ConnectionTimeout:       time.Duration(conf.ConnectionTimeout) * time.Second,
-		OperationTimeout:        time.Duration(conf.OperationTimeout) * time.Second,
+		ConnectionTimeout:       time.Duration(conf.ConnectionTimeout) * time.Millisecond,
+		OperationTimeout:        time.Duration(conf.OperationTimeout) * time.Millisecond,
 		ListenerName:            conf.ListenerName,
 		MaxConnectionsPerBroker: 1,
 		Logger:                  log.DefaultNopLogger(),
