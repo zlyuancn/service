@@ -14,6 +14,7 @@ type PulsarConsumeService struct {
 	app      core.IApp
 	client   pulsar.Client
 	consumes []*Consume
+	handler  []ConsumerHandler
 }
 
 func (p *PulsarConsumeService) Start() {
@@ -34,7 +35,14 @@ func (p *PulsarConsumeService) Close() {
 	wg.Wait()
 }
 
-func (p *PulsarConsumeService) Consume(msg Message) bool {
+// 注册消费函数, 应该在Start之前调用
+func (p *PulsarConsumeService) RegistryHandler(handler ...ConsumerHandler) {
+	h := make([]ConsumerHandler, 0, len(handler))
+	h = append(h, handler...)
+	p.handler = append(p.handler, h...)
+}
+
+func (p *PulsarConsumeService) consumeHandler(msg Message) bool {
 	panic("未实现")
 }
 
@@ -63,7 +71,7 @@ func NewConsumeService(app core.IApp, conf *Config) (*PulsarConsumeService, erro
 
 	consumes := make([]*Consume, conf.ConsumeCount)
 	for i := 0; i < conf.ConsumeCount; i++ {
-		consumer, err := NewConsume(app, client, conf, p.Consume)
+		consumer, err := NewConsume(app, client, conf, p.consumeHandler)
 		if err != nil {
 			return nil, fmt.Errorf("创建pulsar消费者失败: %v", err)
 		}

@@ -1,6 +1,8 @@
 package pulsar_consume
 
 import (
+	"sync"
+
 	"github.com/zly-app/zapp"
 	"github.com/zly-app/zapp/core"
 	"github.com/zly-app/zapp/logger"
@@ -27,34 +29,89 @@ func WithService() zapp.Option {
 	return zapp.WithService(nowServiceType)
 }
 
+// 注册handler
+func RegistryHandler(consumeName string, handlers ...ConsumerHandler) {
+	zapp.App().InjectService(nowServiceType, serviceAdapterInjectData{
+		ConsumeName: consumeName,
+		Handlers:    handlers,
+	})
+}
+
+// 服务适配器注入数据
+type serviceAdapterInjectData struct {
+	ConsumeName string
+	Handlers    []ConsumerHandler
+}
+
 type ServiceAdapter struct {
-	service *PulsarConsumeService
+	app      core.IApp
+	services map[string]*PulsarConsumeService
 }
 
 func (s *ServiceAdapter) Inject(a ...interface{}) {
+	for _, v := range a {
+		data, ok := v.(serviceAdapterInjectData)
+		if !ok {
+			s.app.Fatal("pulsar消费服务注入类型错误, 它必须能转为 *pulsar_consume.serviceAdapterInjectData")
+		}
 
+		ss, ok := s.services[data.ConsumeName]
+		if !ok {
+			s.app.Fatal("pulsar消费服务注入参数错误, 未定义的消费者名", zap.String("ConsumeName", data.ConsumeName))
+		}
+		ss.RegistryHandler(data.Handlers...)
+	}
 }
 
 func (s *ServiceAdapter) Start() error {
-	s.service.Start()
+	var wg sync.WaitGroup
+	wg.Add(len(s.services))
+	for _, ss := range s.services {
+		go func(ss *PulsarConsumeService) {
+			ss.Start()
+			wg.Done()
+		}(ss)
+	}
+	wg.Wait()
 	return nil
 }
 
 func (s *ServiceAdapter) Close() error {
-	s.service.Close()
+	var wg sync.WaitGroup
+	wg.Add(len(s.services))
+	for _, ss := range s.services {
+		go func(ss *PulsarConsumeService) {
+			ss.Close()
+			wg.Done()
+		}(ss)
+	}
+	wg.Wait()
 	return nil
 }
 
 func NewServiceAdapter(app core.IApp) core.IService {
-	conf := NewConfig()
-	err := app.GetConfig().ParseServiceConfig(nowServiceType, conf)
+	consumersConf := make(map[string]interface{})
+	err := app.GetConfig().ParseServiceConfig(nowServiceType, consumersConf)
 	if err != nil {
 		logger.Log.Panic("服务配置错误", zap.String("serviceType", string(nowServiceType)), zap.Error(err))
 	}
-	s, err := NewConsumeService(app, conf)
-	if err != nil {
-		logger.Log.Panic("创建服务失败", zap.String("serviceType", string(nowServiceType)), zap.Error(err))
+
+	services := make(map[string]*PulsarConsumeService, len(consumersConf))
+	for name := range consumersConf {
+		conf := NewConfig()
+		err = app.GetConfig().ParseServiceConfig(nowServiceType+"."+core.ServiceType(name), conf)
+		if err != nil {
+			logger.Log.Panic("服务配置错误", zap.String("serviceType", string(nowServiceType)), zap.Error(err))
+		}
+		s, err := NewConsumeService(app, conf)
+		if err != nil {
+			logger.Log.Panic("创建服务失败", zap.String("serviceType", string(nowServiceType)), zap.Error(err))
+		}
+		services[name] = s
 	}
 
-	return &ServiceAdapter{s}
+	return &ServiceAdapter{
+		app:      app,
+		services: services,
+	}
 }
