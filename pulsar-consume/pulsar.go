@@ -16,14 +16,13 @@ type PulsarConsumeService struct {
 	consumes []*Consume
 }
 
-func (p *PulsarConsumeService) Start() error {
+func (p *PulsarConsumeService) Start() {
 	for _, consume := range p.consumes {
 		go consume.Start()
 	}
-	return nil
 }
 
-func (p *PulsarConsumeService) Close() error {
+func (p *PulsarConsumeService) Close() {
 	var wg sync.WaitGroup
 	wg.Add(len(p.consumes))
 	for _, consume := range p.consumes {
@@ -33,7 +32,6 @@ func (p *PulsarConsumeService) Close() error {
 		}(consume)
 	}
 	wg.Wait()
-	return nil
 }
 
 func (p *PulsarConsumeService) Consume(msg Message) bool {
