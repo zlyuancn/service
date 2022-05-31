@@ -23,8 +23,12 @@ const (
 	defSubscriptionType = "shared"
 	// 订阅初始化游标位置
 	defSubscriptionInitialPosition = "latest"
-	//dlq策略最大交付次数
+	// dlq策略最大交付次数
 	defDLQMaxDeliveries = 0
+	// dlq策略死信topic默认后缀
+	defDLQDeadLetterTopicSuffix = "-DEAD"
+	// dlq策略重试topic默认后缀
+	defDLQRetryLetterTopicSuffix = "-RETRY"
 	// 启用重试topic的重试时间
 	defReconsumeTime = 5000
 	// 接收器队列大小
@@ -50,7 +54,7 @@ type Config struct {
 	TopicsPattern                  string // 支持正则匹配的消费topic, 要求所有topic都在同一个命名空间. 示例: persistent://public/default/test-.*
 	AutoDiscoveryPeriod            int    // 指定轮询新分区或新主题的时间间隔, 单位毫秒. 只有 TopicsPattern 生效时才会启用
 	SubscriptionName               string // 订阅名
-	SubscriptionType               string // 订阅类型, 支持 exclusive,failover,shared,keyshared
+	SubscriptionType               string // 订阅类型, 支持 exclusive,failover,shared,keyshared. 默认 shared
 	SubscriptionInitialPosition    string // 订阅初始化游标位置, 支持 latest,earliest
 	DLQMaxDeliveries               int    // dlq策略最大交付次数, 0表示禁用
 	DLQDeadLetterTopic             string // dlq策略死信队列topic
@@ -110,6 +114,12 @@ func (conf *Config) Check() error {
 	}
 	if conf.DLQMaxDeliveries < 1 {
 		conf.DLQMaxDeliveries = defDLQMaxDeliveries
+	}
+	if conf.DLQMaxDeliveries > 0 && conf.DLQDeadLetterTopic == "" {
+		conf.DLQDeadLetterTopic = conf.SubscriptionName + defDLQDeadLetterTopicSuffix
+	}
+	if conf.DLQMaxDeliveries > 0 && conf.DLQRetryLetterTopic == "" {
+		conf.DLQRetryLetterTopic = conf.SubscriptionName + defDLQRetryLetterTopicSuffix
 	}
 	if conf.ReconsumeTime < 1 {
 		conf.ReconsumeTime = defReconsumeTime

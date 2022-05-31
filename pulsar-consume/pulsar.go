@@ -57,12 +57,12 @@ func (p *PulsarConsumeService) consumeHandler(msg Message) bool {
 
 	logger := p.app.NewTraceLogger(ctx,
 		zap.String("Topic", msg.Topic()),
-		zap.String("ProducerName", msg.ProducerName()),
-		zap.Int64("LedgerID", msg.ID().LedgerID()),
-		zap.Int64("EntryID", msg.ID().EntryID()),
-		zap.String("PublishTime", msg.PublishTime().Format(time.RFC3339Nano)),
 		zap.String("SubscriptionName", p.conf.SubscriptionName),
 		zap.String("SubscriptionType", p.conf.SubscriptionType),
+		zap.Int64("LedgerID", msg.ID().LedgerID()),
+		zap.Int64("EntryID", msg.ID().EntryID()),
+		zap.String("ProducerName", msg.ProducerName()),
+		zap.String("PublishTime", msg.PublishTime().Format(time.RFC3339Nano)),
 	)
 	cCtx := &Context{
 		ILogger:          logger,

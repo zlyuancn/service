@@ -44,7 +44,7 @@ type serviceAdapterInjectData struct {
 }
 
 type serviceAdapterConfig struct {
-	*Config
+	Config
 	Disable bool // 是否关闭
 }
 
@@ -64,6 +64,9 @@ func (s *ServiceAdapter) Inject(a ...interface{}) {
 		if !ok {
 			s.app.Fatal("pulsar消费服务注入参数错误, 未定义的消费者名", zap.String("ConsumeName", data.ConsumeName))
 		}
+		if ss == nil {
+			continue
+		}
 		ss.RegistryHandler(data.Handlers...)
 	}
 }
@@ -72,6 +75,10 @@ func (s *ServiceAdapter) Start() error {
 	var wg sync.WaitGroup
 	wg.Add(len(s.services))
 	for name, ss := range s.services {
+		if ss == nil {
+			wg.Done()
+			continue
+		}
 		go func(name string, ss *PulsarConsumeService) {
 			err := ss.Start()
 			if err != nil {
@@ -88,6 +95,10 @@ func (s *ServiceAdapter) Close() error {
 	var wg sync.WaitGroup
 	wg.Add(len(s.services))
 	for _, ss := range s.services {
+		if ss == nil {
+			wg.Done()
+			continue
+		}
 		go func(ss *PulsarConsumeService) {
 			ss.Close()
 			wg.Done()
@@ -99,7 +110,7 @@ func (s *ServiceAdapter) Close() error {
 
 func NewServiceAdapter(app core.IApp) core.IService {
 	consumersConf := make(map[string]interface{})
-	err := app.GetConfig().ParseServiceConfig(nowServiceType, consumersConf)
+	err := app.GetConfig().ParseServiceConfig(nowServiceType, &consumersConf)
 	if err != nil {
 		logger.Log.Panic("服务配置错误", zap.String("serviceType", string(nowServiceType)), zap.Error(err))
 	}
@@ -107,16 +118,17 @@ func NewServiceAdapter(app core.IApp) core.IService {
 	services := make(map[string]*PulsarConsumeService, len(consumersConf))
 	for name := range consumersConf {
 		conf := &serviceAdapterConfig{
-			Config: NewConfig(),
+			Config: *NewConfig(),
 		}
 		err = app.GetConfig().ParseServiceConfig(nowServiceType+"."+core.ServiceType(name), conf)
 		if err != nil {
 			logger.Log.Panic("服务配置错误", zap.String("serviceType", string(nowServiceType)), zap.String("name", name), zap.Error(err))
 		}
 		if conf.Disable {
+			services[name] = nil
 			continue
 		}
-		s, err := NewConsumeService(app, conf.Config)
+		s, err := NewConsumeService(app, &conf.Config)
 		if err != nil {
 			logger.Log.Panic("创建服务失败", zap.String("serviceType", string(nowServiceType)), zap.String("name", name), zap.Error(err))
 		}
