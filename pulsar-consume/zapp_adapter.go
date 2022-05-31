@@ -43,6 +43,11 @@ type serviceAdapterInjectData struct {
 	Handlers    []ConsumerHandler
 }
 
+type serviceAdapterConfig struct {
+	*Config
+	Disable bool // 是否关闭
+}
+
 type ServiceAdapter struct {
 	app      core.IApp
 	services map[string]*PulsarConsumeService
@@ -66,11 +71,14 @@ func (s *ServiceAdapter) Inject(a ...interface{}) {
 func (s *ServiceAdapter) Start() error {
 	var wg sync.WaitGroup
 	wg.Add(len(s.services))
-	for _, ss := range s.services {
-		go func(ss *PulsarConsumeService) {
-			ss.Start()
+	for name, ss := range s.services {
+		go func(name string, ss *PulsarConsumeService) {
+			err := ss.Start()
+			if err != nil {
+				s.app.Fatal("pulsar消费者启动失败", zap.String("name", name), zap.Error(err))
+			}
 			wg.Done()
-		}(ss)
+		}(name, ss)
 	}
 	wg.Wait()
 	return nil
@@ -98,14 +106,19 @@ func NewServiceAdapter(app core.IApp) core.IService {
 
 	services := make(map[string]*PulsarConsumeService, len(consumersConf))
 	for name := range consumersConf {
-		conf := NewConfig()
+		conf := &serviceAdapterConfig{
+			Config: NewConfig(),
+		}
 		err = app.GetConfig().ParseServiceConfig(nowServiceType+"."+core.ServiceType(name), conf)
 		if err != nil {
-			logger.Log.Panic("服务配置错误", zap.String("serviceType", string(nowServiceType)), zap.Error(err))
+			logger.Log.Panic("服务配置错误", zap.String("serviceType", string(nowServiceType)), zap.String("name", name), zap.Error(err))
 		}
-		s, err := NewConsumeService(app, conf)
+		if conf.Disable {
+			continue
+		}
+		s, err := NewConsumeService(app, conf.Config)
 		if err != nil {
-			logger.Log.Panic("创建服务失败", zap.String("serviceType", string(nowServiceType)), zap.Error(err))
+			logger.Log.Panic("创建服务失败", zap.String("serviceType", string(nowServiceType)), zap.String("name", name), zap.Error(err))
 		}
 		services[name] = s
 	}

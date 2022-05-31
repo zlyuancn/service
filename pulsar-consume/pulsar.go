@@ -1,6 +1,7 @@
 package pulsar_consume
 
 import (
+	"context"
 	"fmt"
 	"sync"
 	"time"
@@ -8,26 +9,34 @@ import (
 	"github.com/apache/pulsar-client-go/pulsar"
 	"github.com/apache/pulsar-client-go/pulsar/log"
 	"github.com/zly-app/zapp/core"
+	"github.com/zly-app/zapp/pkg/utils"
+	"go.uber.org/zap"
 )
 
 type PulsarConsumeService struct {
 	app      core.IApp
 	client   pulsar.Client
-	consumes []*Consume
+	conf     *Config
+	consumes []*Consumer
 	handler  []ConsumerHandler
 }
 
-func (p *PulsarConsumeService) Start() {
+func (p *PulsarConsumeService) Start() error {
+	if len(p.handler) == 0 {
+		return fmt.Errorf("未设置handler")
+	}
+
 	for _, consume := range p.consumes {
 		go consume.Start()
 	}
+	return nil
 }
 
 func (p *PulsarConsumeService) Close() {
 	var wg sync.WaitGroup
 	wg.Add(len(p.consumes))
 	for _, consume := range p.consumes {
-		go func(consume *Consume) {
+		go func(consume *Consumer) {
 			consume.Close()
 			wg.Done()
 		}(consume)
@@ -43,7 +52,51 @@ func (p *PulsarConsumeService) RegistryHandler(handler ...ConsumerHandler) {
 }
 
 func (p *PulsarConsumeService) consumeHandler(msg Message) bool {
-	panic("未实现")
+	ctx, cancel := context.WithCancel(p.app.BaseContext())
+	defer cancel()
+
+	logger := p.app.NewTraceLogger(ctx,
+		zap.String("Topic", msg.Topic()),
+		zap.String("ProducerName", msg.ProducerName()),
+		zap.Int64("LedgerID", msg.ID().LedgerID()),
+		zap.Int64("EntryID", msg.ID().EntryID()),
+		zap.String("PublishTime", msg.PublishTime().Format(time.RFC3339Nano)),
+		zap.String("SubscriptionName", p.conf.SubscriptionName),
+		zap.String("SubscriptionType", p.conf.SubscriptionType),
+	)
+	cCtx := &Context{
+		ILogger:          logger,
+		Ctx:              ctx,
+		Msg:              msg,
+		SubscriptionName: p.conf.SubscriptionName,
+	}
+
+	if p.conf.ConsumeLogLevelIsInfo {
+		cCtx.Info("pulsarConsume.receive")
+	} else {
+		cCtx.Debug("pulsarConsume.receive")
+	}
+
+	err := utils.Recover.WrapCall(func() error {
+		for _, fn := range p.handler {
+			if err := fn(cCtx); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		errDetail := utils.Recover.GetRecoverErrorDetail(err)
+		cCtx.Error("pulsarConsumer.error!", zap.String("error", errDetail))
+		return false
+	}
+
+	if p.conf.ConsumeLogLevelIsInfo {
+		cCtx.Info("pulsarConsumer.success")
+	} else {
+		cCtx.Debug("pulsarConsumer.success")
+	}
+	return true
 }
 
 func NewConsumeService(app core.IApp, conf *Config) (*PulsarConsumeService, error) {
@@ -52,7 +105,8 @@ func NewConsumeService(app core.IApp, conf *Config) (*PulsarConsumeService, erro
 	}
 
 	p := &PulsarConsumeService{
-		app: app,
+		app:  app,
+		conf: conf,
 	}
 
 	co := pulsar.ClientOptions{
@@ -69,7 +123,7 @@ func NewConsumeService(app core.IApp, conf *Config) (*PulsarConsumeService, erro
 		return nil, fmt.Errorf("创建pulsar客户端失败: %v", err)
 	}
 
-	consumes := make([]*Consume, conf.ConsumeCount)
+	consumes := make([]*Consumer, conf.ConsumeCount)
 	for i := 0; i < conf.ConsumeCount; i++ {
 		consumer, err := NewConsume(app, client, conf, p.consumeHandler)
 		if err != nil {

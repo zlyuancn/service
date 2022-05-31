@@ -58,14 +58,14 @@ type Config struct {
 	EnableRetryTopic               bool   // 启用重试topic, 当消息消费失败时扔到重试队列, 如果设为false, 会在内存中保存消息然后重试. 只有设置了DLQ策略才生效
 	ReconsumeTime                  int    // 重新消费时间, 单位毫秒
 	ReceiverQueueSize              int    // 接收器队列大小
-	ConsumeName                    string // 消费者名
 	ReadCompacted                  bool   // 是否允许从压缩topic中读取. 只有持久topic并且在exclusive或failover订阅模式才可用, 否则会产生错误
 	MaxReconnectToBroker           int    // 重新连接到broker的最大次数, -1表示不限
 	EnableDefaultNackBackoffPolicy bool   // 是否启用重试补偿时间策略, 只有在不使用重试队列topic时生效
 
-	ConsumeCount        int // 消费者数量
-	ConsumeThreadCount  int // 每个消费者协程数, keyShard模式建议增加ConsumeCount而不是通过ConsumeThreadCount提高速度
-	ReceiveMsgRetryTime int // 消费者接收消息失败重试时间, 单位毫秒
+	ConsumeLogLevelIsInfo bool // 将消费日志设为info
+	ConsumeCount          int  // 消费者数量
+	ConsumeThreadCount    int  // 每个消费者协程数, keyShard模式建议增加ConsumeCount而不是通过ConsumeThreadCount提高速度
+	ReceiveMsgRetryTime   int  // 消费者接收消息失败重试时间, 单位毫秒
 }
 
 func NewConfig() *Config {

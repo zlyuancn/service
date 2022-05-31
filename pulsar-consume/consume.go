@@ -11,17 +11,17 @@ import (
 	"go.uber.org/zap"
 )
 
-type Consume struct {
+type Consumer struct {
 	app       core.IApp
 	conf      *Config
 	consume   pulsar.Consumer
-	handle    func(message Message) bool
+	handle    func(Message) bool
 	workers   *Workers
 	ctx       context.Context
 	ctxCancel context.CancelFunc
 }
 
-func (c *Consume) Start() {
+func (c *Consumer) Start() {
 	c.workers.Start()
 	for {
 		select {
@@ -50,12 +50,12 @@ func (c *Consume) Start() {
 	}
 }
 
-func (c *Consume) Close() {
+func (c *Consumer) Close() {
 	c.ctxCancel()
 	c.workers.Stop()
 }
 
-func NewConsume(app core.IApp, client pulsar.Client, conf *Config, handle func(Message) bool) (*Consume, error) {
+func NewConsume(app core.IApp, client pulsar.Client, conf *Config, handle func(Message) bool) (*Consumer, error) {
 	co := pulsar.ConsumerOptions{
 		AutoDiscoveryPeriod: time.Duration(conf.AutoDiscoveryPeriod) * time.Millisecond,
 		SubscriptionName:    conf.SubscriptionName,
@@ -65,7 +65,6 @@ func NewConsume(app core.IApp, client pulsar.Client, conf *Config, handle func(M
 		RetryEnable:         conf.EnableRetryTopic,
 		ReceiverQueueSize:   conf.ReceiverQueueSize,
 		NackRedeliveryDelay: time.Duration(conf.ReconsumeTime) * time.Millisecond,
-		Name:                conf.ConsumeName,
 		ReadCompacted:       conf.ReadCompacted,
 		//Interceptors:                   nil,
 		//Schema:                         nil,
@@ -117,7 +116,7 @@ func NewConsume(app core.IApp, client pulsar.Client, conf *Config, handle func(M
 	}
 
 	ctx, ctxCancel := context.WithCancel(app.BaseContext())
-	c := &Consume{
+	c := &Consumer{
 		app:       app,
 		conf:      conf,
 		consume:   consume,
