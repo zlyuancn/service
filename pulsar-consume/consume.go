@@ -62,18 +62,16 @@ func NewConsume(app core.IApp, client pulsar.Client, conf *Config, handle func(M
 		//Properties:                     nil,
 		//SubscriptionProperties:         nil,
 		//KeySharedPolicy:                nil,
-		RetryEnable:                    conf.EnableRetryTopic,
-		ReceiverQueueSize:              conf.ReceiverQueueSize,
-		NackRedeliveryDelay:            time.Duration(conf.ReconsumeTime) * time.Millisecond,
-		Name:                           conf.ConsumeName,
-		ReadCompacted:                  conf.ReadCompacted,
-		ReplicateSubscriptionState:     false,
-		Interceptors:                   nil,
-		Schema:                         nil,
-		MaxReconnectToBroker:           nil,
-		Decryption:                     nil,
-		EnableDefaultNackBackoffPolicy: false,
-		NackBackoffPolicy:              nil,
+		RetryEnable:         conf.EnableRetryTopic,
+		ReceiverQueueSize:   conf.ReceiverQueueSize,
+		NackRedeliveryDelay: time.Duration(conf.ReconsumeTime) * time.Millisecond,
+		Name:                conf.ConsumeName,
+		ReadCompacted:       conf.ReadCompacted,
+		//Interceptors:                   nil,
+		//Schema:                         nil,
+		//Decryption:                     nil,
+		EnableDefaultNackBackoffPolicy: conf.EnableDefaultNackBackoffPolicy,
+		//NackBackoffPolicy:              nil,
 	}
 	if conf.Topics != "" {
 		topics := strings.Split(conf.Topics, ",")
@@ -107,6 +105,10 @@ func NewConsume(app core.IApp, client pulsar.Client, conf *Config, handle func(M
 			DeadLetterTopic:  conf.DLQDeadLetterTopic,
 			RetryLetterTopic: conf.DLQRetryLetterTopic,
 		}
+	}
+	if conf.MaxReconnectToBroker > -1 {
+		v := uint(conf.MaxReconnectToBroker)
+		co.MaxReconnectToBroker = &v
 	}
 
 	consume, err := client.Subscribe(co)

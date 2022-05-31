@@ -29,6 +29,8 @@ const (
 	defReconsumeTime = 5000
 	// 接收器队列大小
 	defReceiverQueueSize = 1000
+	// 重新连接到broker的最大次数
+	defMaxReconnectToBroker = -1
 
 	// 消费者数量
 	defConsumeCount = 1
@@ -44,20 +46,22 @@ type Config struct {
 	ConnectionTimeout int    // 连接超时, 单位毫秒
 	OperationTimeout  int    // 操作超时, 单位毫秒
 
-	Topics                      string // 消费topic, 多个topic用英文逗号连接. 示例: persistent://public/default/test1,persistent://public/default/test2
-	TopicsPattern               string // 支持正则匹配的消费topic, 要求所有topic都在同一个命名空间. 示例: persistent://public/default/test-.*
-	AutoDiscoveryPeriod         int    // 指定轮询新分区或新主题的时间间隔, 单位毫秒. 只有 TopicsPattern 生效时才会启用
-	SubscriptionName            string // 订阅名
-	SubscriptionType            string // 订阅类型, 支持 exclusive,failover,shared,keyshared
-	SubscriptionInitialPosition string // 订阅初始化游标位置, 支持 latest,earliest
-	DLQMaxDeliveries            int    // dlq策略最大交付次数, 0表示禁用
-	DLQDeadLetterTopic          string // dlq策略死信队列topic
-	DLQRetryLetterTopic         string // dlq策略重试队列topic
-	EnableRetryTopic            bool   // 启用重试topic, 当消息消费失败时扔到重试队列, 如果设为false, 会在内存中保存消息然后重试. 只有设置了DLQ策略才生效
-	ReconsumeTime               int    // 重新消费时间, 单位毫秒
-	ReceiverQueueSize           int    // 接收器队列大小
-	ConsumeName                 string // 消费者名
-	ReadCompacted               bool   // 是否允许从压缩topic中读取
+	Topics                         string // 消费topic, 多个topic用英文逗号连接. 示例: persistent://public/default/test1,persistent://public/default/test2
+	TopicsPattern                  string // 支持正则匹配的消费topic, 要求所有topic都在同一个命名空间. 示例: persistent://public/default/test-.*
+	AutoDiscoveryPeriod            int    // 指定轮询新分区或新主题的时间间隔, 单位毫秒. 只有 TopicsPattern 生效时才会启用
+	SubscriptionName               string // 订阅名
+	SubscriptionType               string // 订阅类型, 支持 exclusive,failover,shared,keyshared
+	SubscriptionInitialPosition    string // 订阅初始化游标位置, 支持 latest,earliest
+	DLQMaxDeliveries               int    // dlq策略最大交付次数, 0表示禁用
+	DLQDeadLetterTopic             string // dlq策略死信队列topic
+	DLQRetryLetterTopic            string // dlq策略重试队列topic
+	EnableRetryTopic               bool   // 启用重试topic, 当消息消费失败时扔到重试队列, 如果设为false, 会在内存中保存消息然后重试. 只有设置了DLQ策略才生效
+	ReconsumeTime                  int    // 重新消费时间, 单位毫秒
+	ReceiverQueueSize              int    // 接收器队列大小
+	ConsumeName                    string // 消费者名
+	ReadCompacted                  bool   // 是否允许从压缩topic中读取. 只有持久topic并且在exclusive或failover订阅模式才可用, 否则会产生错误
+	MaxReconnectToBroker           int    // 重新连接到broker的最大次数, -1表示不限
+	EnableDefaultNackBackoffPolicy bool   // 是否启用重试补偿时间策略, 只有在不使用重试队列topic时生效
 
 	ConsumeCount        int // 消费者数量
 	ConsumeThreadCount  int // 每个消费者协程数, keyShard模式建议增加ConsumeCount而不是通过ConsumeThreadCount提高速度
@@ -65,7 +69,9 @@ type Config struct {
 }
 
 func NewConfig() *Config {
-	return &Config{}
+	return &Config{
+		MaxReconnectToBroker: defMaxReconnectToBroker,
+	}
 }
 
 func (conf *Config) Check() error {
@@ -110,6 +116,9 @@ func (conf *Config) Check() error {
 	}
 	if conf.ReceiverQueueSize < 1 {
 		conf.ReceiverQueueSize = defReceiverQueueSize
+	}
+	if conf.MaxReconnectToBroker < 0 {
+		conf.MaxReconnectToBroker = defMaxReconnectToBroker
 	}
 
 	if conf.ConsumeCount < 1 {
