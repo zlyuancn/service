@@ -14,7 +14,9 @@ import (
 
 var _ hello.HelloServiceServer = (*HelloService)(nil)
 
-type HelloService struct{}
+type HelloService struct {
+	hello.UnimplementedHelloServiceServer
+}
 
 func (h *HelloService) Hello(ctx context.Context, req *hello.HelloReq) (*hello.HelloResp, error) {
 	session := grpc.GetSession(ctx) // 获取session
