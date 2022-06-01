@@ -69,7 +69,7 @@ func NewGrpcService(app core.IApp) core.IService {
 	// 在app关闭前优雅的关闭服务
 	zapp.AddHandler(zapp.BeforeExitHandler, func(app core.IApp, handlerType zapp.HandlerType) {
 		server.GracefulStop()
-		app.Debug("grpc服务已关闭")
+		app.Warn("grpc服务已关闭")
 	})
 
 	return &GrpcService{
@@ -114,7 +114,7 @@ func (g *GrpcService) Start() error {
 		return err
 	}
 
-	g.app.Debug("正在启动grpc服务", zap.String("bind", g.conf.Bind))
+	g.app.Info("正在启动grpc服务", zap.String("bind", g.conf.Bind))
 	return g.server.Serve(listener)
 }
 
