@@ -18,12 +18,6 @@
    go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
    ```
 
-4. 如果启用http协议, 需要安装 [protoc-gen-grpc-gateway](https://github.com/grpc-ecosystem/grpc-gateway)
-
-   ```shell
-   go install github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-grpc-gateway@latest
-   ```
-
 # 示例项目
 
 + [grpc服务端](./example/grpc-s)
