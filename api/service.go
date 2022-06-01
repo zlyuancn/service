@@ -13,6 +13,7 @@ import (
 
 	"github.com/iris-contrib/middleware/cors"
 	"github.com/kataras/iris/v12"
+	"github.com/zly-app/zapp"
 	"github.com/zly-app/zapp/core"
 	"go.uber.org/zap"
 
@@ -54,6 +55,16 @@ func NewApiService(app core.IApp, conf *config.Config, opts ...Option) *ApiServi
 		irisApp.Use(WrapMiddleware(fn))
 	}
 
+	// 在app关闭前优雅的关闭服务
+	zapp.AddHandler(zapp.BeforeExitHandler, func(app core.IApp, handlerType zapp.HandlerType) {
+		err := irisApp.Shutdown(context.Background())
+		if err != nil {
+			app.Error("irisApp关闭失败", zap.Error(err))
+			return
+		}
+		app.Warn("api服务已关闭")
+	})
+
 	return &ApiService{
 		app:         app,
 		conf:        conf,
@@ -62,7 +73,7 @@ func NewApiService(app core.IApp, conf *config.Config, opts ...Option) *ApiServi
 }
 
 func (a *ApiService) Start() error {
-	a.app.Debug("正在启动api服务", zap.String("bind", a.conf.Bind))
+	a.app.Info("正在启动api服务", zap.String("bind", a.conf.Bind))
 	opts := []iris.Configurator{
 		iris.WithoutBodyConsumptionOnUnmarshal,       // 重复消费
 		iris.WithoutPathCorrection,                   // 不自动补全斜杠
@@ -89,7 +100,5 @@ func (a *ApiService) RegistryRouter(fn ...RegisterApiRouterFunc) {
 }
 
 func (a *ApiService) Close() error {
-	err := a.Shutdown(context.Background())
-	a.app.Debug("api服务已关闭")
-	return err
+	return nil
 }

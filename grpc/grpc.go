@@ -19,6 +19,7 @@ import (
 	grpc_ctxtags "github.com/grpc-ecosystem/go-grpc-middleware/tags"
 	"github.com/opentracing/opentracing-go"
 	open_log "github.com/opentracing/opentracing-go/log"
+	"github.com/zly-app/zapp"
 	"github.com/zly-app/zapp/core"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
@@ -64,6 +65,12 @@ func NewGrpcService(app core.IApp) core.IService {
 			Time: time.Duration(conf.HeartbeatTime) * time.Millisecond, // 心跳
 		}),
 	)
+
+	// 在app关闭前优雅的关闭服务
+	zapp.AddHandler(zapp.BeforeExitHandler, func(app core.IApp, handlerType zapp.HandlerType) {
+		server.GracefulStop()
+		app.Debug("grpc服务已关闭")
+	})
 
 	return &GrpcService{
 		app:    app,
@@ -112,8 +119,6 @@ func (g *GrpcService) Start() error {
 }
 
 func (g *GrpcService) Close() error {
-	g.server.GracefulStop()
-	g.app.Debug("grpc服务已关闭")
 	return nil
 }
 
