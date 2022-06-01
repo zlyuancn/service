@@ -27,12 +27,12 @@ import (
 	"google.golang.org/grpc/metadata"
 )
 
-type GrpcServer = grpc.Server
+type ServiceRegistrar = grpc.ServiceRegistrar
 
 var typeOfComponentConnInterface = reflect.TypeOf((*core.IComponent)(nil)).Elem()
-var typeOfGrpcServer = reflect.TypeOf((*GrpcServer)(nil))
+var typeOfGrpcServer = reflect.TypeOf((*ServiceRegistrar)(nil)).Elem()
 
-type RegistryGrpcServiceFunc = func(c core.IComponent, server *GrpcServer)
+type RegistryGrpcServiceFunc = func(c core.IComponent, server ServiceRegistrar)
 
 type GrpcService struct {
 	app    core.IApp

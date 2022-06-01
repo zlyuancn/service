@@ -28,7 +28,7 @@ func main() {
 	app := zapp.NewApp("grpc-s",
 		grpc.WithService())
 
-	grpc.RegistryServerObject(func(c core.IComponent, server *grpc.GrpcServer) {
+	grpc.RegistryServerObject(func(c core.IComponent, server grpc.ServiceRegistrar) {
 		hello.RegisterHelloServiceServer(server, new(HelloService)) // 注册服务
 	})
 
