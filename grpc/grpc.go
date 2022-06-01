@@ -18,6 +18,7 @@ import (
 	grpc_recovery "github.com/grpc-ecosystem/go-grpc-middleware/recovery"
 	grpc_ctxtags "github.com/grpc-ecosystem/go-grpc-middleware/tags"
 	"github.com/opentracing/opentracing-go"
+	open_log "github.com/opentracing/opentracing-go/log"
 	"github.com/zly-app/zapp/core"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
@@ -180,13 +181,13 @@ func UnaryServerOpenTraceInterceptor(ctx context.Context, req interface{}, info 
 	defer span.Finish()
 	ctx = opentracing.ContextWithSpan(ctx, span)
 
-	span.SetTag("req", req)
+	span.LogFields(open_log.Object("req", req))
 	reply, err := handler(ctx, req)
 	if err != nil {
 		span.SetTag("error", true)
-		span.SetTag("err", err.Error())
+		span.LogFields(open_log.Error(err))
 	} else {
-		span.SetTag("reply", reply)
+		span.LogFields(open_log.Object("reply", reply))
 	}
 	return reply, err
 }
