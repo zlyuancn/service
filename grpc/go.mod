@@ -3,6 +3,7 @@ module github.com/zly-app/service/grpc
 go 1.15
 
 require (
+	github.com/envoyproxy/protoc-gen-validate v0.6.7 // indirect
 	github.com/gogo/protobuf v1.3.2
 	github.com/grpc-ecosystem/go-grpc-middleware v1.2.2
 	github.com/opentracing/opentracing-go v1.2.0
