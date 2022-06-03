@@ -1,3 +1,16 @@
+
+<!-- TOC -->
+
+- [grpc服务](#grpc%E6%9C%8D%E5%8A%A1)
+- [先决条件](#%E5%85%88%E5%86%B3%E6%9D%A1%E4%BB%B6)
+- [示例项目](#%E7%A4%BA%E4%BE%8B%E9%A1%B9%E7%9B%AE)
+- [快速开始](#%E5%BF%AB%E9%80%9F%E5%BC%80%E5%A7%8B)
+- [配置文件](#%E9%85%8D%E7%BD%AE%E6%96%87%E4%BB%B6)
+
+<!-- /TOC -->
+
+---
+
 # grpc服务
 
 > 提供用于 https://github.com/zly-app/zapp 的服务
@@ -11,7 +24,7 @@
 2. 安装 ProtoBuffer Golang 支持
 
    ```shell
-   go install github.com/golang/protobuf/protoc-gen-go@latest`
+   go install github.com/golang/protobuf/protoc-gen-go@latest
    ```
 
 3. 安装 ProtoBuffer GRpc Golang 支持. [文档](https://grpc.io/docs/languages/go/quickstart/)
@@ -125,3 +138,43 @@ services:
    grpc:
       bind: ":3000"
 ```
+
+# 请求校验
+
+我们使用 [protoc-gen-validate](https://github.com/envoyproxy/protoc-gen-validate) 作为数据校验工具
+
+1. 添加 a.proto 文件
+
+```protobuf
+syntax = "proto3";
+
+package examplepb;
+
+import "validate/validate.proto";
+
+message Person {
+  uint64 id    = 1 [(validate.rules).uint64.gt    = 999];
+
+  string email = 2 [(validate.rules).string.email = true];
+
+  string name  = 3 [(validate.rules).string = {
+                      pattern:   "^[^[0-9]A-Za-z]+( [^[0-9]A-Za-z]+)*$",
+                      max_bytes: 256,
+                   }];
+
+  Location home = 4 [(validate.rules).message.required = true];
+
+  message Location {
+    double lat = 1 [(validate.rules).double = { gte: -90,  lte: 90 }];
+    double lng = 2 [(validate.rules).double = { gte: -180, lte: 180 }];
+  }
+}
+```
+
+2. 设置 proto imports 路径
+
+待补充
+
+3. 编译 proto
+
+待补充...

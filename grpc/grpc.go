@@ -23,8 +23,10 @@ import (
 	"github.com/zly-app/zapp/core"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/status"
 )
 
 type ServiceRegistrar = grpc.ServiceRegistrar
@@ -58,6 +60,12 @@ func NewGrpcService(app core.IApp) core.IService {
 		grpc_ctxtags.UnaryServerInterceptor(),  // 设置标记
 		grpc_recovery.UnaryServerInterceptor(), // panic恢复
 	)
+	if conf.ReqDataValidate && !conf.ReqDataValidateAllField {
+		chainUnaryClientList = append(chainUnaryClientList, UnaryServerReqDataValidateInterceptor)
+	}
+	if conf.ReqDataValidate && conf.ReqDataValidateAllField {
+		chainUnaryClientList = append(chainUnaryClientList, UnaryServerReqDataValidateAllInterceptor)
+	}
 
 	server := grpc.NewServer(
 		grpc.UnaryInterceptor(grpc_middleware.ChainUnaryServer(chainUnaryClientList...)),
@@ -195,4 +203,34 @@ func UnaryServerOpenTraceInterceptor(ctx context.Context, req interface{}, info 
 		span.LogFields(open_log.Object("reply", reply))
 	}
 	return reply, err
+}
+
+type ValidateInterface interface {
+	Validate() error
+}
+type ValidateAllInterface interface {
+	ValidateAll() error
+}
+
+// 数据校验
+func UnaryServerReqDataValidateInterceptor(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
+	if v, ok := req.(ValidateInterface); ok {
+		if err := v.Validate(); err != nil {
+			return nil, status.Error(codes.InvalidArgument, err.Error())
+		}
+	}
+	return handler(ctx, req)
+}
+
+// 数据校验, 总是校验所有字段
+func UnaryServerReqDataValidateAllInterceptor(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
+	v, ok := req.(ValidateAllInterface)
+	if !ok {
+		// 降级
+		return UnaryServerReqDataValidateInterceptor(ctx, req, info, handler)
+	}
+	if err := v.ValidateAll(); err != nil {
+		return nil, status.Error(codes.InvalidArgument, err.Error())
+	}
+	return handler(ctx, req)
 }
