@@ -381,10 +381,10 @@ func (c *CronService) triggerTask(t ITask) {
 		return
 	}
 
-	_, ok := c.gpool.TryGo(func() error {
+	ok := c.gpool.TryGo(func() error {
 		c.execute(t)
 		return nil
-	})
+	}, nil)
 	if !ok {
 		c.app.Warn("cron.error", zap.String("task_name", t.Name()), zap.String("err", "tasks queue is full"))
 	}
