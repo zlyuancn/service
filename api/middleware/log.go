@@ -18,13 +18,13 @@ import (
 	jsoniter "github.com/json-iterator/go"
 	"github.com/kataras/iris/v12"
 	iris_context "github.com/kataras/iris/v12/context"
-	"github.com/opentracing/opentracing-go"
 	open_log "github.com/opentracing/opentracing-go/log"
 	app_config "github.com/zly-app/zapp/config"
 	app_utils "github.com/zly-app/zapp/pkg/utils"
 	"go.uber.org/zap"
 
 	"github.com/zly-app/zapp/core"
+	zapp_utils "github.com/zly-app/zapp/pkg/utils"
 
 	"github.com/zly-app/service/api/config"
 	"github.com/zly-app/service/api/utils"
@@ -59,7 +59,7 @@ func loggerMiddleware(app core.IApp, conf *config.Config) iris.Handler {
 
 		// 链路追踪
 		ctx := utils.Context.MustGetContextFromIrisContext(irisCtx)
-		span := opentracing.SpanFromContext(ctx)
+		span := zapp_utils.Trace.GetSpan(ctx)
 
 		// request
 		ip := utils.Context.GetRemoteIP(irisCtx)
@@ -237,7 +237,7 @@ func loggerMiddlewareWithJson(app core.IApp, conf *config.Config) iris.Handler {
 
 		// 链路追踪
 		ctx := utils.Context.MustGetContextFromIrisContext(irisCtx)
-		span := opentracing.SpanFromContext(ctx)
+		span := zapp_utils.Trace.GetSpan(ctx)
 
 		// request
 		ip := utils.Context.GetRemoteIP(irisCtx)
