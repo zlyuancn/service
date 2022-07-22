@@ -10,10 +10,12 @@ package api
 
 import (
 	"context"
+	"errors"
 
 	"github.com/iris-contrib/middleware/cors"
 	"github.com/kataras/iris/v12"
 	"github.com/zly-app/zapp"
+	"github.com/zly-app/zapp/component/gpool"
 	"github.com/zly-app/zapp/core"
 	"go.uber.org/zap"
 
@@ -32,6 +34,24 @@ type ApiService struct {
 	*iris.Application
 }
 
+// 协程池限制
+func GPoolLimitMiddleware(app core.IApp, conf *config.Config) func(ctx *Context) error {
+	pool := gpool.NewGPool(&gpool.GPoolConfig{
+		JobQueueSize: conf.MaxReqWaitQueueSize,
+		ThreadCount:  conf.ThreadCount,
+	})
+	return func(ctx *Context) error {
+		err, ok := pool.TryGoSync(func() error {
+			ctx.Next()
+			return nil
+		})
+		if !ok {
+			return errors.New("gPool Limit")
+		}
+		return err
+	}
+}
+
 func NewApiService(app core.IApp, conf *config.Config, opts ...Option) *ApiService {
 	// 处理选项
 	o := newOptions(opts...)
@@ -41,9 +61,10 @@ func NewApiService(app core.IApp, conf *config.Config, opts ...Option) *ApiServi
 	irisApp.Logger().SetLevel("disable") // 关闭默认日志
 	irisApp.Use(
 		middleware.BaseMiddleware(app, conf),
-		middleware.LoggerMiddleware(app, conf),
+		middleware.LoggerMiddleware(app, conf),          // 日志
+		WrapMiddleware(GPoolLimitMiddleware(app, conf)), // 协程池限制
 		cors.AllowAll(),
-		middleware.Recover(),
+		middleware.Recover(), // panic恢复
 	)
 	irisApp.AllowMethods(iris.MethodOptions)
 
