@@ -73,7 +73,7 @@ func (c *Context) RemoteAddr() string {
 	return utils.Context.GetRemoteIP(c.IrisContext)
 }
 
-// 获取ctx, 这个ctx基于app.BaseContext并带链路追踪跨度
+// 获取ctx
 func (c *Context) Context() context.Context {
 	return c.ctx
 }
